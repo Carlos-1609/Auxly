@@ -6,7 +6,7 @@ import {
 } from "firebase/auth";
 import { FirebaseAuth } from "./firebaseConfig";
 
-const googleProvider = new GoogleAuthProvider();
+// const googleProvider = new GoogleAuthProvider();
 
 // export const signInWithGoogle = async (
 //   idToken: string,
@@ -50,8 +50,8 @@ export const userSignInFirebase = async (email: string, password: string) => {
       email,
       password
     );
-    console.log("User was logged In!!!");
-    console.log(JSON.stringify(response, null, 2));
+    // console.log("User was logged In!!!");
+    // console.log(JSON.stringify(response, null, 2));
     return response.user;
   } catch (error) {
     console.error(error);

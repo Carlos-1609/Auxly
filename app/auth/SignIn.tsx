@@ -1,6 +1,7 @@
 import EmailModal from "@/components/EmailModal";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import { userSignInFirebase } from "@/firebase/providers";
+import { setUser } from "@/store/auth/authSlice";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -14,6 +15,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDispatch } from "react-redux";
 
 const SignIn = () => {
   const [isFocusedEmail, setIsFocusedEmail] = useState(false);
@@ -24,14 +26,26 @@ const SignIn = () => {
   const [userEmail, setUserEmail] = useState("");
   const [userPassword, setUserPassword] = useState("");
 
+  const dispatch = useDispatch();
+
   const router = useRouter();
 
   const onSignIN = async () => {
     setIsLoading(true);
     const user = await userSignInFirebase(userEmail, userPassword);
     setIsLoading(false);
+
     if (!user) {
       throw Error("Error logging in the user");
+    } else {
+      dispatch(
+        setUser({
+          uid: user?.uid ?? "",
+          email: user?.email ?? "",
+          displayName: user?.displayName ?? "",
+        })
+      );
+      router.replace("/Playlists");
     }
     console.log(JSON.stringify(user, null, 2));
 
