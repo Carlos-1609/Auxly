@@ -1,5 +1,7 @@
 //import { SignupValues, signupSchema } from "@/schemas/auth";
-import { userSignUpFirebase } from "@/firebase/providers";
+import LoadingOverlay from "@/components/ui/LoadingOverlay";
+import { startUserSignUp } from "@/store/auth/authThunk";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Haptics from "expo-haptics";
@@ -51,14 +53,17 @@ const SignUp = () => {
   });
   const [isVisible, setIsVisible] = useState(true);
   const [isVisibleConf, setIsVisibleConf] = useState(true);
+  // const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
+  const isLoading = useAppSelector((state) => state.auth.isLoading);
 
   const onSubmit = methods.handleSubmit(async (data) => {
-    try {
-      const user = await userSignUpFirebase(data);
-      console.log("Signed up user:", JSON.stringify(user, null, 2));
-    } catch (error) {
-      console.error("Signup failed:", error);
+    const ok = await dispatch(startUserSignUp(data));
+    if (!ok) {
+      console.log("An error occured with creating the user");
+      return;
     }
+    router.replace("/Playlists");
   });
 
   return (
@@ -178,6 +183,7 @@ const SignUp = () => {
           </View>
         </FormProvider>
       </ScrollView>
+      <LoadingOverlay visible={isLoading} message="Creating your account..." />
     </SafeAreaView>
   );
 };

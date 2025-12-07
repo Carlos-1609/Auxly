@@ -1,10 +1,9 @@
-import { RootState } from "@/store/store";
+import { useAppSelector } from "@/store/hooks";
 import { Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useSelector } from "react-redux";
 
 const Playlists = () => {
-  const user = useSelector((state: RootState) => state.auth);
+  const user = useAppSelector((state) => state.auth);
   const test = () => console.log(user);
   return (
     <SafeAreaView>
