@@ -6,6 +6,7 @@ type userState = {
   displayName: String;
   status: String;
   isLoading: boolean;
+  isLoggedIn: boolean;
 };
 
 const initialState: userState = {
@@ -13,6 +14,7 @@ const initialState: userState = {
   email: "",
   displayName: "",
   status: "checking",
+  isLoggedIn: false,
   isLoading: false,
 };
 
@@ -32,12 +34,15 @@ const authSlice = createSlice({
       state.email = action.payload.email;
       state.displayName = action.payload.displayName;
       state.status = "authenticated";
+      state.isLoggedIn = true;
     },
     clearUser: (state) => {
       ((state.uid = ""),
         (state.displayName = ""),
         (state.email = ""),
-        (state.status = "unauthenticated"));
+        (state.status = "unauthenticated"),
+        (state.isLoggedIn = false),
+        (state.isLoading = false));
     },
     setIsLoading: (state, { payload }) => {
       state.isLoading = payload;

@@ -1,5 +1,6 @@
 import EmailModal from "@/components/EmailModal";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
+import { userPasswordResetFirebase } from "@/firebase/providers";
 import { startUserSignin } from "@/store/auth/authThunk";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -15,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Toast } from "react-native-toast-message/lib/src/Toast";
 
 const SignIn = () => {
   const [isFocusedEmail, setIsFocusedEmail] = useState(false);
@@ -23,6 +25,7 @@ const SignIn = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [userPassword, setUserPassword] = useState("");
+  const [userEmailReset, setUserEmailReset] = useState("");
 
   const dispatch = useAppDispatch();
   const isLoading = useAppSelector((state) => state.auth.isLoading);
@@ -38,11 +41,33 @@ const SignIn = () => {
     router.replace("/Playlists");
   };
 
+  const onUserPasswordReset = async (email: string) => {
+    const res = await userPasswordResetFirebase(email);
+    if (!res.ok) {
+      console.log("Something went wrong");
+      console.log(res.errorMessage);
+      Toast.show({
+        type: "error",
+        text1: "Reset email not sent",
+        text2: "An error ocurred, please try again!",
+      });
+    }
+    Toast.show({
+      type: "success",
+      text1: "Reset email sent",
+      text2: "Please check your email, for a password reset link!",
+    });
+    // console.log(res.response);
+  };
+
   const onChangeHandlerEmail = (e: string) => {
     setUserEmail(e);
   };
   const onChangeHandlerPassword = (e: string) => {
     setUserPassword(e);
+  };
+  const onChangeHandlerPasswordReset = (e: string) => {
+    setUserEmailReset(e);
   };
 
   return (
@@ -150,7 +175,10 @@ const SignIn = () => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity className="h-12 rounded-2xl bg-white border border-gray-200 flex-row items-center justify-center gap-x-3 shadow-md shadow-black/30 active:opacity-80">
+            <TouchableOpacity
+              onPress={() => router.push("/Playlists")}
+              className="h-12 rounded-2xl bg-white border border-gray-200 flex-row items-center justify-center gap-x-3 shadow-md shadow-black/30 active:opacity-80"
+            >
               <Image
                 source={require("../../assets/images/googleIcon.png")}
                 className="h-5 w-5"
@@ -205,13 +233,15 @@ const SignIn = () => {
               placeholderTextColor="#A0A0A0"
               autoCapitalize="none"
               keyboardType="email-address"
+              onChangeText={(e) => onChangeHandlerPasswordReset(e)}
             />
           </View>
           <TouchableOpacity
             className="bg-gold rounded-md py-3 items-center justify-center mt-3"
             onPress={() => {
               setModalOpen(false);
-              router.push("/auth/VerifyCode");
+              onUserPasswordReset(userEmailReset);
+              //router.push("/auth/VerifyCode");
             }}
           >
             <Text className="text-black font-bold text-lg">Continue</Text>

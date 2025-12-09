@@ -1,27 +1,11 @@
 import {
-  GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signOut,
   updateProfile,
 } from "firebase/auth";
 import { FirebaseAuth } from "./firebaseConfig";
-
-// const googleProvider = new GoogleAuthProvider();
-
-// export const signInWithGoogle = async (
-//   idToken: string,
-//   accessToken?: string
-// ) => {
-//   try {
-//     const credential = GoogleAuthProvider.credential(idToken, accessToken);
-
-//     const result = await signInWithCredential(FirebaseAuth, credential);
-//     // result.user is the logged-in Firebase user
-//     return result;
-//   } catch (error) {
-//     console.error(error);
-//   }
-// };
 
 export const userSignUpFirebase = async (data: any) => {
   try {
@@ -57,3 +41,24 @@ export const userSignInFirebase = async (email: string, password: string) => {
     console.error(error);
   }
 };
+
+export const userPasswordResetFirebase = async (email: string) => {
+  try {
+    const response = await sendPasswordResetEmail(FirebaseAuth, email);
+    return {
+      ok: true,
+      response: response,
+    };
+  } catch (error: any) {
+    const errorCode = error.code;
+    const errorMessage = error.message;
+
+    return {
+      ok: false,
+      errorMessage: errorMessage,
+      errorCode: errorCode,
+    };
+  }
+};
+
+export const userLogoutFirebase = async () => await signOut(FirebaseAuth);

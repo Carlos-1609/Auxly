@@ -1,4 +1,8 @@
-import { userSignInFirebase, userSignUpFirebase } from "@/firebase/providers";
+import {
+  userPasswordResetFirebase,
+  userSignInFirebase,
+  userSignUpFirebase,
+} from "@/firebase/providers";
 import { AppDispatch, RootState } from "../store";
 import { setIsLoading, setUser } from "./authSlice";
 
@@ -53,3 +57,20 @@ export const startUserSignin = (email: string, password: string) => {
     }
   };
 };
+
+// export const sendEmailResetPassword = (email: string) => {
+//   return async (dispatch: AppDispatch, getState: () => RootState) => {
+//     try {
+//       const res = await userPasswordResetFirebase(email);
+//       console.log(res.response);
+//       if (!res.ok) {
+//         console.log(res.errorMessage);
+//         return false;
+//       }
+//       return true;
+//     } catch (error) {
+//       console.error(error);
+//       return false;
+//     }
+//   };
+// };
