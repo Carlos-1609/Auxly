@@ -38,6 +38,7 @@ export const userSignInFirebase = async (email: string, password: string) => {
     // console.log(JSON.stringify(response, null, 2));
     return response.user;
   } catch (error) {
+    console.log("Firebase Provider Error");
     console.error(error);
   }
 };

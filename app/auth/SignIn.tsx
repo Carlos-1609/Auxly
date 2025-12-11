@@ -35,7 +35,11 @@ const SignIn = () => {
   const onSignIN = async () => {
     const ok = await dispatch(startUserSignin(userEmail, userPassword));
     if (!ok) {
-      console.log("Error signing in the user!");
+      Toast.show({
+        type: "error",
+        text1: "Error while signing in",
+        text2: "An error ocurred, please try again!",
+      });
       return;
     }
     router.replace("/Playlists");
@@ -239,8 +243,18 @@ const SignIn = () => {
           <TouchableOpacity
             className="bg-gold rounded-md py-3 items-center justify-center mt-3"
             onPress={() => {
-              setModalOpen(false);
-              onUserPasswordReset(userEmailReset);
+              if (userEmailReset === "") {
+                setModalOpen(false);
+                Toast.show({
+                  type: "success",
+                  text1: "Reset email not sent",
+                  text2: "Please make sure to put the correct email!",
+                });
+              } else {
+                onUserPasswordReset(userEmailReset);
+                setModalOpen(false);
+              }
+
               //router.push("/auth/VerifyCode");
             }}
           >

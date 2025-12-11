@@ -1,8 +1,4 @@
-import {
-  userPasswordResetFirebase,
-  userSignInFirebase,
-  userSignUpFirebase,
-} from "@/firebase/providers";
+import { userSignInFirebase, userSignUpFirebase } from "@/firebase/providers";
 import { AppDispatch, RootState } from "../store";
 import { setIsLoading, setUser } from "./authSlice";
 
@@ -49,9 +45,12 @@ export const startUserSignin = (email: string, password: string) => {
         })
       );
       console.log(JSON.stringify(user, null, 2));
-      return true;
+      return {
+        ok: true,
+      };
     } catch (error) {
-      console.error(error);
+      console.log("Inside the thunk");
+      console.error("This was the sign in error: /n", error);
       dispatch(setIsLoading(false));
       return false;
     }
