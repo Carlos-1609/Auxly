@@ -32,7 +32,7 @@ const FormInput = ({
 
       <View
         className={`bg-bg-input rounded-md border-b-4 shadow-md shadow-black ${
-          error ? "border-red-500" : "border-orange-400"
+          error ? "border-error" : "border-dark-orange"
         }`}
       >
         <TextInput
@@ -50,7 +50,7 @@ const FormInput = ({
       </View>
 
       {error?.message ? (
-        <Text className="text-red-500 mt-1">{error.message}</Text>
+        <Text className="text-error mt-1">{error.message}</Text>
       ) : null}
     </View>
   );

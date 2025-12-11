@@ -12,6 +12,7 @@ module.exports = {
         // 🌅 Brand
         coral: "#FF6B6B",
         gold: "#FFD580",
+        "dark-orange": "#fb923c",
 
         // 🎨 Backgrounds & Surfaces
         "bg-base": "#1B1A1E",

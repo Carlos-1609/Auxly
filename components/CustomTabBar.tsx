@@ -21,8 +21,8 @@ const CustomTabBar = ({
 
           // Use your theme colors
           const color = isFocused
-            ? "#72E0A8" /* success */
-            : "#8A8A8A"; /* text-muted */
+            ? "#fb923c" /* success */
+            : "#FFD580"; /* text-muted */
 
           const onPress = () => {
             const event = navigation.emit({
@@ -41,7 +41,7 @@ const CustomTabBar = ({
               key={route.key}
               onPress={onPress}
               className={`flex-1 items-center py-1 ${
-                isFocused ? "bg-bg-input rounded-xl" : ""
+                isFocused ? "bg-gold/10 rounded-xl" : ""
               }`}
             >
               {/* Icon from Tabs.Screen options */}

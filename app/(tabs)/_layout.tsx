@@ -1,4 +1,5 @@
 import CustomTabBar from "@/components/CustomTabBar";
+import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import { useCheckAuth } from "@/hooks/useCheckAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
@@ -6,11 +7,16 @@ import { Redirect, Tabs } from "expo-router";
 const TabsLayout = () => {
   const { status, isLoggedIn } = useCheckAuth();
 
+  if (status === "checking") {
+    console.log("Checking your session!");
+    <LoadingOverlay visible={true} message="Checking your session..." />;
+  }
+
   if (!isLoggedIn) {
     console.log("Please signin first okay");
+    console.log(status);
     return <Redirect href="/auth/SignIn" />;
   }
-  //#1B1A1E
 
   return (
     <Tabs
