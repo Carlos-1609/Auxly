@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID!;
@@ -17,6 +17,7 @@ type SpotifyTokenResponse = {
   expires_in: number;
   refresh_token?: string;
   scope: string;
+  uid: string;
 };
 
 const CallbackScreen = () => {
@@ -44,6 +45,17 @@ const CallbackScreen = () => {
           "spotify_code_verifier"
         );
         const storedState = await AsyncStorage.getItem("spotify_auth_state");
+
+        if ((await AsyncStorage.getItem("spotify_access_token")) !== "") {
+          console.log("Spotify Access Token Detected for DEV ONLY");
+          router.push("/Playlists");
+          return;
+        }
+
+        // const accessToken = await AsyncStorage.getItem("")
+        console.log("THIS ARE  FROM THE ASYNC STORAGE");
+        console.log(storedVerifier);
+        console.log(storedState);
 
         if (!storedVerifier) {
           setError("Missing code_verifier. Please try connecting again.");
@@ -102,8 +114,8 @@ const CallbackScreen = () => {
         );
 
         // (Optional) Clear verifier & state after success
-        await AsyncStorage.removeItem("spotify_code_verifier");
-        await AsyncStorage.removeItem("spotify_auth_state");
+        // await AsyncStorage.removeItem("spotify_code_verifier");
+        // await AsyncStorage.removeItem("spotify_auth_state");
 
         // 6) Redirect back to Playlists
         router.replace("/Playlists");
@@ -138,6 +150,14 @@ const CallbackScreen = () => {
           Try going back to the Playlists screen and tapping “Connect Spotify”
           again.
         </Text>
+        <View className="flex items-center ">
+          <TouchableOpacity
+            className="bg-error w-20 p-2 rounded-md "
+            onPress={() => router.push("/Playlists")}
+          >
+            <Text className="text-text-primary font-bold">Go back</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );

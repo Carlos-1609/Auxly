@@ -19,7 +19,7 @@ const CustomTabBar = ({
 
           const isFocused = state.index === index;
 
-          // Use your theme colors
+          // Use theme colors
           const color = isFocused
             ? "#fb923c" /* success */
             : "#FFD580"; /* text-muted */
@@ -31,6 +31,7 @@ const CustomTabBar = ({
               canPreventDefault: true,
             });
 
+            //Check if the pressed tab is the current one
             if (!isFocused && !event.defaultPrevented) {
               navigation.navigate(route.name);
             }
@@ -55,7 +56,7 @@ const CustomTabBar = ({
               {/* Label */}
               <Text
                 className={`mt-1 text-[11px] ${
-                  isFocused ? "text-text-primary" : "text-text-muted"
+                  isFocused ? "text-text-primary font-bold" : "text-text-muted"
                 }`}
               >
                 {label as string}

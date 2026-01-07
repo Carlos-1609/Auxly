@@ -52,7 +52,7 @@ const Playlists = () => {
     const challenge = await getChallengeFromVerifier(verifier);
     // Builidng the URL
     const scope =
-      "user-read-recently-played playlist-modify-private playlist-modify-public";
+      "user-read-recently-played playlist-modify-private playlist-modify-public user-top-read user-read-private user-read-email";
     const redirectUri = Linking.createURL("callback");
     console.log("REDIRECT URI →", redirectUri);
     const state = await generateRandomString(16);
@@ -65,7 +65,7 @@ const Playlists = () => {
       code_challenge_method: "S256",
       code_challenge: challenge,
       redirect_uri: redirectUri,
-      state,
+      state: state,
     };
     // Turn params object into URL-encoded query string
     const query = new URLSearchParams(
@@ -83,7 +83,85 @@ const Playlists = () => {
     const a = await AsyncStorage.getItem("spotify_access_token");
     const r = await AsyncStorage.getItem("spotify_refresh_token");
     const e = await AsyncStorage.getItem("spotify_token_expires_at");
-    console.log("TOKEN DEBUG →", { a, r, e });
+    const uid = await AsyncStorage.getItem("spotify_user_id");
+    console.log("TOKEN DEBUG →", { a, r, e, uid });
+  };
+
+  const loadRecentSpotifySongs = async () => {
+    try {
+      const token = await AsyncStorage.getItem("spotify_access_token");
+      if (!token) {
+        console.log("Error no token has been found");
+        return;
+      }
+
+      const response = await fetch(
+        `https://api.spotify.com/v1/me/top/tracks?time_range=short_term&limit=10`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const tracks = await response.json();
+      console.log("This are the spotify tracks: ", tracks.items);
+      const trackList = tracks.items.map((trackInfo: any, index: number) => {
+        return trackInfo.uri;
+      });
+      console.log("These are the songs uris: ", trackList);
+
+      //Get the user ID
+      const userResponse = await fetch("https://api.spotify.com/v1/me", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const spotifyUser = await userResponse.json();
+      await AsyncStorage.setItem("spotify_user_id", spotifyUser.id);
+      console.log("This is the user id: ", spotifyUser.id);
+      const body = {
+        name: "Test Playlist",
+        description: "New playlist description",
+        public: false,
+      };
+
+      //Generate the Playlist
+      const playlistResponse = await fetch(
+        `https://api.spotify.com/v1/users/${spotifyUser.id}/playlists`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        }
+      );
+
+      const playlist = await playlistResponse.json();
+      console.log("This is the playlists id: ", playlist.id);
+
+      //Add the songs to the playlist
+      await fetch(
+        `https://api.spotify.com/v1/playlists/${playlist.id}/tracks`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ uris: trackList }),
+        }
+      );
+
+      //Need song uris
+    } catch (error) {
+      console.log("Spotify API error:", error);
+    }
   };
 
   return (
@@ -101,6 +179,12 @@ const Playlists = () => {
         </Pressable>
         <Pressable onPress={debugTokens} className="bg-cyan-600 p-4 mt-5 ">
           <Text className="text-text-primary">Check Spotify Tokens</Text>
+        </Pressable>
+        <Pressable
+          onPress={loadRecentSpotifySongs}
+          className="bg-red-600 p-4 mt-5 "
+        >
+          <Text className="text-text-primary">Load Recent Songs</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

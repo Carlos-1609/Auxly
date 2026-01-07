@@ -9,12 +9,13 @@ const TabsLayout = () => {
 
   if (status === "checking") {
     console.log("Checking your session!");
-    <LoadingOverlay visible={true} message="Checking your session..." />;
+    return <LoadingOverlay visible={true} message="Checking your session..." />;
   }
 
   if (!isLoggedIn) {
     console.log("Please signin first okay");
     console.log(status);
+
     return <Redirect href="/auth/SignIn" />;
   }
 
