@@ -1,10 +1,10 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 
 type userState = {
-  uid: String;
-  email: String;
-  displayName: String;
-  status: String;
+  uid: string;
+  email: string;
+  displayName: string;
+  status: string;
   isLoading: boolean;
   isLoggedIn: boolean;
 };

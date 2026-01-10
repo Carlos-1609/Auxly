@@ -53,9 +53,9 @@ const CallbackScreen = () => {
         }
 
         // const accessToken = await AsyncStorage.getItem("")
-        console.log("THIS ARE  FROM THE ASYNC STORAGE");
-        console.log(storedVerifier);
-        console.log(storedState);
+        // console.log("THIS ARE  FROM THE ASYNC STORAGE");
+        // console.log(storedVerifier);
+        // console.log(storedState);
 
         if (!storedVerifier) {
           setError("Missing code_verifier. Please try connecting again.");
