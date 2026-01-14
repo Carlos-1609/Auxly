@@ -1,8 +1,14 @@
+import { FirebaseDB } from "@/firebase/firebaseConfig";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  generateRandomString,
+  getChallengeFromVerifier,
+  getCodeVerifier,
+} from "@/store/playlists/playlistThunk";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Crypto from "expo-crypto";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
+import { doc, getDoc } from "firebase/firestore";
 import { Pressable, ScrollView, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -10,41 +16,6 @@ const Playlists = () => {
   const user = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const router = useRouter();
-
-  const generateRandomString = async (length: number) => {
-    const possible =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-    // Get random bytes
-    const randomBytes = await Crypto.getRandomBytesAsync(length);
-
-    let text = "";
-    for (let i = 0; i < randomBytes.length; i++) {
-      text += possible[randomBytes[i] % possible.length];
-    }
-
-    return text;
-  };
-
-  const getCodeVerifier = async () => {
-    const code = await generateRandomString(64);
-    return code;
-  };
-
-  const getChallengeFromVerifier = async (verifier: string) => {
-    const base64 = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      verifier,
-      { encoding: Crypto.CryptoEncoding.BASE64 }
-    );
-
-    const base64url = base64
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-
-    return base64url;
-  };
 
   const spotifyButtonLink = async () => {
     const verifier = await getCodeVerifier();
@@ -164,6 +135,27 @@ const Playlists = () => {
     }
   };
 
+  const firebaseTest = async () => {
+    //const querySnapShot = await getDocs(collection(FirebaseDB, "userAccounts"));
+    // const test = querySnapShot.docs.map((doc) => {
+    //   return doc.data();
+    // });
+    // console.log(...test);
+    const docRef = doc(
+      FirebaseDB,
+      "userAccounts",
+      "bQHe55nahtM2Ci12sUEENxyibd72"
+    );
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      console.log("Document data:", docSnap.data());
+    } else {
+      // docSnap.data() will be undefined in this case
+      console.log("No such document!");
+    }
+  };
+
   return (
     <SafeAreaView
       edges={["top"]}
@@ -185,6 +177,9 @@ const Playlists = () => {
           className="bg-red-600 p-4 mt-5 "
         >
           <Text className="text-text-primary">Load Recent Songs</Text>
+        </Pressable>
+        <Pressable onPress={firebaseTest} className="bg-orange-400 p-4 mt-5 ">
+          <Text className="text-text-primary font-bold">Firebase Test</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

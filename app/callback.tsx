@@ -1,5 +1,6 @@
 // app/callback.tsx
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
+import { useAppDispatch } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -22,6 +23,7 @@ type SpotifyTokenResponse = {
 
 const CallbackScreen = () => {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { code, state } = useLocalSearchParams<{
     code?: string;
     state?: string;
@@ -98,6 +100,7 @@ const CallbackScreen = () => {
         const expiresAt = now + data.expires_in * 1000;
 
         // 5) Save tokens (for now in AsyncStorage)
+        //dispatch()
         await AsyncStorage.setItem(
           "spotify_access_token",
           data.access_token ?? ""

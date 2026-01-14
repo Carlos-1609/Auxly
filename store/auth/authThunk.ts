@@ -1,4 +1,7 @@
+import { FirebaseDB } from "@/firebase/firebaseConfig";
 import { userSignInFirebase, userSignUpFirebase } from "@/firebase/providers";
+import { UserAccounts } from "@/types/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { AppDispatch, RootState } from "../store";
 import { setIsLoading, setUser } from "./authSlice";
 
@@ -17,6 +20,7 @@ export const startUserSignUp = (data: any) => {
           uid: user.uid,
           email: user.email ?? "",
           displayName: user.displayName ?? "",
+          userAccounts: {},
         })
       );
       dispatch(setIsLoading(false));
@@ -37,14 +41,25 @@ export const startUserSignin = (email: string, password: string) => {
         dispatch(setIsLoading(false));
         return false;
       }
+      const docRef = doc(FirebaseDB, "userAccounts", user.uid);
+      const query = await getDoc(docRef);
+      let userAccounts: UserAccounts;
+      if (query.exists()) {
+        console.log("Si existe");
+        userAccounts = query.data();
+      } else {
+        console.log("No existe");
+        userAccounts = {};
+      }
       dispatch(
         setUser({
           uid: user.uid,
           displayName: user.displayName ?? "",
           email: user.email ?? "",
+          userAccounts: userAccounts,
         })
       );
-      console.log(JSON.stringify(user, null, 2));
+      console.log(JSON.stringify({ user, userAccounts }, null, 2));
       return {
         ok: true,
       };

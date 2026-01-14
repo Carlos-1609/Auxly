@@ -1,5 +1,5 @@
 import { FirebaseAuth } from "@/firebase/firebaseConfig";
-import { clearUser, setUser } from "@/store/auth/authSlice";
+import { clearUser, setUserBasic } from "@/store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect } from "react";
@@ -13,7 +13,7 @@ export const useCheckAuth = () => {
 
       const { uid, email, displayName } = user;
       dispatch(
-        setUser({
+        setUserBasic({
           uid: uid,
           email: email ?? "",
           displayName: displayName ?? "",
