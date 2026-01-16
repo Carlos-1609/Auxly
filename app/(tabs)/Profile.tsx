@@ -1,6 +1,7 @@
 import { userLogoutFirebase } from "@/firebase/providers";
 import { clearUser } from "@/store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { ScrollView, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,6 +12,7 @@ const Profile = () => {
   const router = useRouter();
   const test = () => console.log(user);
   const logout = async () => {
+    await AsyncStorage.clear();
     await userLogoutFirebase();
     dispatch(clearUser());
     router.push("/auth/SignIn");

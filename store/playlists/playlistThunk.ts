@@ -1,4 +1,8 @@
+import { FirebaseDB } from "@/firebase/firebaseConfig";
+import { SpotifyTokens } from "@/types/auth";
 import * as Crypto from "expo-crypto";
+import { doc, setDoc } from "firebase/firestore";
+import { setIsLoading } from "../auth/authSlice";
 import { AppDispatch, RootState } from "../store";
 
 export const generateRandomString = async (length: number) => {
@@ -36,11 +40,43 @@ export const getChallengeFromVerifier = async (verifier: string) => {
   return base64url;
 };
 
-export const storeSpotifyTokens = () => {
+export const storeSpotifyTokens = (spotifyTokens: SpotifyTokens) => {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     try {
-    } catch (error) {
+      console.log("INSIDE THE STORE SPOTIFY TOKENS THUNK");
+      dispatch(setIsLoading(true));
+      const user = getState().auth;
+      const userResponse = await fetch("https://api.spotify.com/v1/me", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${spotifyTokens.spotifyAccessToken}`,
+        },
+      });
+      const spotifyUser = await userResponse.json();
+      const docRef = doc(FirebaseDB, "userAccounts", user.uid);
+      await setDoc(
+        docRef,
+        {
+          spotifyTokens: {
+            spotifyAccessToken: spotifyTokens.spotifyAccessToken,
+            spotifyRefreshToken: spotifyTokens.spotifyRefreshToken,
+            spotifyUserID: spotifyUser.id,
+            spotifyTokenExpiresAt: spotifyTokens.spotifyTokenExpiresAt,
+          },
+        },
+        { merge: true }
+      );
+      dispatch(setIsLoading(false));
+      return {
+        ok: true,
+      };
+    } catch (error: any) {
       console.log(error);
+      dispatch(setIsLoading(false));
+      return {
+        ok: false,
+        errorMessage: error.message,
+      };
     }
   };
 };

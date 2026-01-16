@@ -1,6 +1,8 @@
 // app/callback.tsx
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import { useAppDispatch } from "@/store/hooks";
+import { storeSpotifyTokens } from "@/store/playlists/playlistThunk";
+import { SpotifyTokens } from "@/types/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -47,17 +49,17 @@ const CallbackScreen = () => {
           "spotify_code_verifier"
         );
         const storedState = await AsyncStorage.getItem("spotify_auth_state");
+        const verifyAccessToken = await AsyncStorage.getItem(
+          "spotify_access_token"
+        );
 
-        if ((await AsyncStorage.getItem("spotify_access_token")) !== "") {
+        if (verifyAccessToken) {
           console.log("Spotify Access Token Detected for DEV ONLY");
+          const tokennn = await AsyncStorage.getItem("spotify_access_token");
+          console.log("THIS THE ACCESS TOKEN: ", tokennn);
           router.push("/Playlists");
           return;
         }
-
-        // const accessToken = await AsyncStorage.getItem("")
-        // console.log("THIS ARE  FROM THE ASYNC STORAGE");
-        // console.log(storedVerifier);
-        // console.log(storedState);
 
         if (!storedVerifier) {
           setError("Missing code_verifier. Please try connecting again.");
@@ -95,12 +97,18 @@ const CallbackScreen = () => {
         }
 
         const data = (await response.json()) as SpotifyTokenResponse;
+        console.log("THIS IS THE DATA FROM SPOTIFY: ", data);
 
         const now = Date.now();
-        const expiresAt = now + data.expires_in * 1000;
-
+        const expiresAt = now + data.expires_in * 1000; //token lasts for 1h
+        const spotifyTokens: SpotifyTokens = {
+          spotifyAccessToken: data.access_token,
+          spotifyRefreshToken: data.refresh_token,
+          spotifyUserID: data.uid,
+          spotifyTokenExpiresAt: expiresAt,
+        };
         // 5) Save tokens (for now in AsyncStorage)
-        //dispatch()
+        dispatch(storeSpotifyTokens(spotifyTokens));
         await AsyncStorage.setItem(
           "spotify_access_token",
           data.access_token ?? ""
@@ -129,7 +137,7 @@ const CallbackScreen = () => {
     };
 
     handleSpotifyCallback();
-  }, [code, state, router]);
+  }, [code, router, state]);
 
   // While loading / exchanging tokens
   if (!error) {

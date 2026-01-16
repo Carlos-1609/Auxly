@@ -41,16 +41,7 @@ export const startUserSignin = (email: string, password: string) => {
         dispatch(setIsLoading(false));
         return false;
       }
-      const docRef = doc(FirebaseDB, "userAccounts", user.uid);
-      const query = await getDoc(docRef);
-      let userAccounts: UserAccounts;
-      if (query.exists()) {
-        console.log("Si existe");
-        userAccounts = query.data();
-      } else {
-        console.log("No existe");
-        userAccounts = {};
-      }
+      const userAccounts: UserAccounts = await getUserAccountTokens(user.uid);
       dispatch(
         setUser({
           uid: user.uid,
@@ -70,6 +61,26 @@ export const startUserSignin = (email: string, password: string) => {
       return false;
     }
   };
+};
+
+export const getUserAccountTokens = async (id: string) => {
+  try {
+    const docRef = doc(FirebaseDB, "userAccounts", id);
+    const query = await getDoc(docRef);
+    let userAccounts: UserAccounts;
+    if (query.exists()) {
+      //console.log("Si existe");
+      userAccounts = query.data();
+      return userAccounts;
+    } else {
+      //console.log("No existe");
+      userAccounts = {};
+      return userAccounts;
+    }
+  } catch (error) {
+    console.log(error);
+    return {};
+  }
 };
 
 // export const sendEmailResetPassword = (email: string) => {
