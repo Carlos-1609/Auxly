@@ -11,8 +11,10 @@ export type UserState = {
 export type SpotifyTokens = {
   spotifyAccessToken?: string;
   spotifyRefreshToken?: string;
-  spotifyTokenExpiresAt?: number; // recommend number
+  spotifyTokenExpiresAt?: number;
   spotifyUserID?: string;
+  codeVerifier?: string;
+  state?: string;
 };
 
 export type AppleTokens = {

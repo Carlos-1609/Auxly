@@ -8,7 +8,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { Pressable, ScrollView, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -45,6 +45,17 @@ const Playlists = () => {
 
     // Final URL
     const authUrl = `https://accounts.spotify.com/authorize?${query}`;
+
+    // Save Code Verifier and State in Firebase
+    const docRef = doc(FirebaseDB, "userAccounts", user.uid);
+    await setDoc(
+      docRef,
+      {
+        "spotifyTokens.codeVerifier": verifier,
+        "spotifyTokens.state": state,
+      },
+      { merge: true }
+    );
 
     // Open Spotify auth page
     await Linking.openURL(authUrl);

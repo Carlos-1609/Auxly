@@ -82,20 +82,3 @@ export const getUserAccountTokens = async (id: string) => {
     return {};
   }
 };
-
-// export const sendEmailResetPassword = (email: string) => {
-//   return async (dispatch: AppDispatch, getState: () => RootState) => {
-//     try {
-//       const res = await userPasswordResetFirebase(email);
-//       console.log(res.response);
-//       if (!res.ok) {
-//         console.log(res.errorMessage);
-//         return false;
-//       }
-//       return true;
-//     } catch (error) {
-//       console.error(error);
-//       return false;
-//     }
-//   };
-// };

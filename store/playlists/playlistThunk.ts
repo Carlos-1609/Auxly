@@ -57,12 +57,12 @@ export const storeSpotifyTokens = (spotifyTokens: SpotifyTokens) => {
       await setDoc(
         docRef,
         {
-          spotifyTokens: {
-            spotifyAccessToken: spotifyTokens.spotifyAccessToken,
-            spotifyRefreshToken: spotifyTokens.spotifyRefreshToken,
-            spotifyUserID: spotifyUser.id,
-            spotifyTokenExpiresAt: spotifyTokens.spotifyTokenExpiresAt,
-          },
+          "spotifyTokens.spotifyAccessToken": spotifyTokens.spotifyAccessToken,
+          "spotifyTokens.spotifyRefreshToken":
+            spotifyTokens.spotifyRefreshToken,
+          "spotifyTokens.spotifyUserID": spotifyUser.id,
+          "spotifyTokens.spotifyTokenExpiresAt":
+            spotifyTokens.spotifyTokenExpiresAt,
         },
         { merge: true }
       );
