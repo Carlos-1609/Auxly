@@ -5,6 +5,8 @@ import { doc, setDoc } from "firebase/firestore";
 import { setIsLoading } from "../auth/authSlice";
 import { AppDispatch, RootState } from "../store";
 
+const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID!;
+
 export const generateRandomString = async (length: number) => {
   const possible =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -40,6 +42,47 @@ export const getChallengeFromVerifier = async (verifier: string) => {
   return base64url;
 };
 
+export const refreshSpotifyToken = () => {
+  return async (dispatch: AppDispatch, getState: () => RootState) => {
+    try {
+      const user = getState().auth;
+      const refreshToken = user.userAccounts.spotifyTokens?.spotifyRefreshToken;
+      if (!refreshToken) {
+        return {
+          ok: false,
+          errorMessage: "Refresh token not found",
+        };
+      }
+
+      console.log("This is the refresh token: ", refreshToken);
+
+      const response = await fetch("https://accounts.spotify.com/api/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+          client_id: SPOTIFY_CLIENT_ID,
+        }).toString(),
+      });
+      const tokens = await response.json();
+      console.log("This are the tokens: ");
+      console.log(tokens);
+      return {
+        ok: true,
+      };
+    } catch (error: any) {
+      console.log(error);
+      return {
+        ok: false,
+        errorMessage: error.message,
+      };
+    }
+  };
+};
+
 export const storeSpotifyTokens = (spotifyTokens: SpotifyTokens) => {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     try {
@@ -57,12 +100,12 @@ export const storeSpotifyTokens = (spotifyTokens: SpotifyTokens) => {
       await setDoc(
         docRef,
         {
-          "spotifyTokens.spotifyAccessToken": spotifyTokens.spotifyAccessToken,
-          "spotifyTokens.spotifyRefreshToken":
-            spotifyTokens.spotifyRefreshToken,
-          "spotifyTokens.spotifyUserID": spotifyUser.id,
-          "spotifyTokens.spotifyTokenExpiresAt":
-            spotifyTokens.spotifyTokenExpiresAt,
+          spotifyTokens: {
+            spotifyAccessToken: spotifyTokens.spotifyAccessToken,
+            spotifyRefreshToken: spotifyTokens.spotifyRefreshToken,
+            spotifyUserID: spotifyUser.id,
+            spotifyTokenExpiresAt: spotifyTokens.spotifyTokenExpiresAt,
+          },
         },
         { merge: true }
       );

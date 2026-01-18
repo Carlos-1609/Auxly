@@ -13,8 +13,6 @@ export type SpotifyTokens = {
   spotifyRefreshToken?: string;
   spotifyTokenExpiresAt?: number;
   spotifyUserID?: string;
-  codeVerifier?: string;
-  state?: string;
 };
 
 export type AppleTokens = {

@@ -8,7 +8,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { Pressable, ScrollView, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -46,17 +46,6 @@ const Playlists = () => {
     // Final URL
     const authUrl = `https://accounts.spotify.com/authorize?${query}`;
 
-    // Save Code Verifier and State in Firebase
-    const docRef = doc(FirebaseDB, "userAccounts", user.uid);
-    await setDoc(
-      docRef,
-      {
-        "spotifyTokens.codeVerifier": verifier,
-        "spotifyTokens.state": state,
-      },
-      { merge: true }
-    );
-
     // Open Spotify auth page
     await Linking.openURL(authUrl);
   };
@@ -71,7 +60,7 @@ const Playlists = () => {
 
   const loadRecentSpotifySongs = async () => {
     try {
-      const token = await AsyncStorage.getItem("spotify_access_token");
+      const token = user.userAccounts.spotifyTokens?.spotifyAccessToken;
       if (!token) {
         console.log("Error no token has been found");
         return;
@@ -94,26 +83,15 @@ const Playlists = () => {
       });
       console.log("These are the songs uris: ", trackList);
 
-      //Get the user ID
-      const userResponse = await fetch("https://api.spotify.com/v1/me", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const spotifyUser = await userResponse.json();
-      await AsyncStorage.setItem("spotify_user_id", spotifyUser.id);
-      console.log("This is the user id: ", spotifyUser.id);
+      //Generate the Playlist
       const body = {
         name: "Test Playlist",
         description: "New playlist description",
         public: false,
       };
 
-      //Generate the Playlist
       const playlistResponse = await fetch(
-        `https://api.spotify.com/v1/users/${spotifyUser.id}/playlists`,
+        `https://api.spotify.com/v1/users/${user.userAccounts.spotifyTokens?.spotifyUserID}/playlists`,
         {
           method: "POST",
           headers: {

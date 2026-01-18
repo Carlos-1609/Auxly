@@ -1,8 +1,12 @@
 // app/callback.tsx
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { storeSpotifyTokens } from "@/store/playlists/playlistThunk";
+import {
+  refreshSpotifyToken,
+  storeSpotifyTokens,
+} from "@/store/playlists/playlistThunk";
 import { SpotifyTokens } from "@/types/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -50,14 +54,13 @@ const CallbackScreen = () => {
 
         if (!expiresAt || !accessToken) {
           //We dont have the tokens for spotify
-
+          console.log("NO SPOTIFY TOKENS");
           // 2) Read stored verifier + state
-          // const storedVerifier = await AsyncStorage.getItem(
-          //   "spotify_code_verifier"
-          // );
-          const storedVerifier = user.userAccounts.spotifyTokens?.codeVerifier;
-          // const storedState = await AsyncStorage.getItem("spotify_auth_state");
-          const storedState = user.userAccounts.spotifyTokens?.state;
+          const storedState = await AsyncStorage.getItem("spotify_auth_state");
+          const storedVerifier = await AsyncStorage.getItem(
+            "spotify_code_verifier"
+          );
+
           // const verifyAccessToken = await Asynctorage.getItem(
           //   "spotify_access_token"
           // );
@@ -127,6 +130,7 @@ const CallbackScreen = () => {
           console.log("Trying to refresh the token");
           console.log("Token exp: ", expiresAt);
           console.log(Date.now());
+          dispatch(refreshSpotifyToken());
           router.replace("/Playlists");
         } else {
           //This means the tokens are all good
