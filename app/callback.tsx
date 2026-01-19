@@ -1,10 +1,7 @@
 // app/callback.tsx
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  refreshSpotifyToken,
-  storeSpotifyTokens,
-} from "@/store/playlists/playlistThunk";
+import { storeSpotifyTokens } from "@/store/playlists/playlistThunk";
 import { SpotifyTokens } from "@/types/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
@@ -38,10 +35,6 @@ const CallbackScreen = () => {
 
   const [error, setError] = useState<string | null>(null);
 
-  const spotifyTokens = user.userAccounts.spotifyTokens;
-  const expiresAt = spotifyTokens?.spotifyTokenExpiresAt;
-  const accessToken = spotifyTokens?.spotifyAccessToken;
-
   useEffect(() => {
     // wrap async logic in a function
     const handleSpotifyCallback = async () => {
@@ -51,92 +44,76 @@ const CallbackScreen = () => {
           setError("Missing authorization code from Spotify.");
           return;
         }
+        //We dont have the tokens for spotify
+        console.log("NO SPOTIFY TOKENS");
+        // 2) Read stored verifier + state
+        const storedState = await AsyncStorage.getItem("spotify_auth_state");
+        const storedVerifier = await AsyncStorage.getItem(
+          "spotify_code_verifier"
+        );
 
-        if (!expiresAt || !accessToken) {
-          //We dont have the tokens for spotify
-          console.log("NO SPOTIFY TOKENS");
-          // 2) Read stored verifier + state
-          const storedState = await AsyncStorage.getItem("spotify_auth_state");
-          const storedVerifier = await AsyncStorage.getItem(
-            "spotify_code_verifier"
-          );
+        // const verifyAccessToken = await Asynctorage.getItem(
+        //   "spotify_access_token"
+        // );
 
-          // const verifyAccessToken = await Asynctorage.getItem(
-          //   "spotify_access_token"
-          // );
+        // if (verifyAccessToken) {
+        //   console.log("Spotify Access Token Detected for DEV ONLY");
+        //   const tokennn = await AsyncStorage.getItem("spotify_access_token");
+        //   console.log("THIS THE ACCESS TOKEN: ", tokennn);
+        //   router.push("/Playlists");
+        //   return;
+        // }
 
-          // if (verifyAccessToken) {
-          //   console.log("Spotify Access Token Detected for DEV ONLY");
-          //   const tokennn = await AsyncStorage.getItem("spotify_access_token");
-          //   console.log("THIS THE ACCESS TOKEN: ", tokennn);
-          //   router.push("/Playlists");
-          //   return;
-          // }
-
-          if (!storedVerifier) {
-            setError("Missing code_verifier. Please try connecting again.");
-            return;
-          }
-
-          if (!storedState || storedState !== state) {
-            setError("State mismatch. Possible invalid auth response.");
-            return;
-          }
-
-          // 3) Build form data for token request
-          const body = new URLSearchParams({
-            grant_type: "authorization_code",
-            code: code as string,
-            redirect_uri: SPOTIFY_REDIRECT_URI,
-            client_id: SPOTIFY_CLIENT_ID,
-            code_verifier: storedVerifier,
-          }).toString();
-
-          // 4) Call Spotify token endpoint
-          const response = await fetch(
-            "https://accounts.spotify.com/api/token",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              body,
-            }
-          );
-
-          if (!response.ok) {
-            const text = await response.text();
-            console.log("Spotify token error:", text);
-            setError("Failed to exchange code for tokens.");
-            return;
-          }
-
-          const data = (await response.json()) as SpotifyTokenResponse;
-          console.log("THIS IS THE DATA FROM SPOTIFY: ", data);
-
-          const now = Date.now();
-          const tokenExpiresAt = now + data.expires_in * 1000; //token lasts for 1h
-          const spotifyTokens: SpotifyTokens = {
-            spotifyAccessToken: data.access_token,
-            spotifyRefreshToken: data.refresh_token,
-            spotifyTokenExpiresAt: tokenExpiresAt,
-          };
-          // 5) Save tokens (for now in AsyncStorage)
-          dispatch(storeSpotifyTokens(spotifyTokens));
-
-          // 6) Redirect back to Playlists
-          router.replace("/Playlists");
-        } else if (expiresAt <= Date.now()) {
-          console.log("Trying to refresh the token");
-          console.log("Token exp: ", expiresAt);
-          console.log(Date.now());
-          dispatch(refreshSpotifyToken());
-          router.replace("/Playlists");
-        } else {
-          //This means the tokens are all good
-          router.push("/Playlists");
+        if (!storedVerifier) {
+          setError("Missing code_verifier. Please try connecting again.");
           return;
         }
+
+        if (!storedState || storedState !== state) {
+          setError("State mismatch. Possible invalid auth response.");
+          return;
+        }
+
+        // 3) Build form data for token request
+        const body = new URLSearchParams({
+          grant_type: "authorization_code",
+          code: code as string,
+          redirect_uri: SPOTIFY_REDIRECT_URI,
+          client_id: SPOTIFY_CLIENT_ID,
+          code_verifier: storedVerifier,
+        }).toString();
+
+        // 4) Call Spotify token endpoint
+        const response = await fetch("https://accounts.spotify.com/api/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body,
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          console.log("Spotify token error:", text);
+          setError("Failed to exchange code for tokens.");
+          return;
+        }
+
+        const data = (await response.json()) as SpotifyTokenResponse;
+        console.log("THIS IS THE DATA FROM SPOTIFY: ", data);
+
+        const now = Date.now();
+        const tokenExpiresAt = now + data.expires_in * 1000; //token lasts for 1h
+        const spotifyTokens: SpotifyTokens = {
+          spotifyAccessToken: data.access_token,
+          spotifyRefreshToken: data.refresh_token,
+          spotifyTokenExpiresAt: tokenExpiresAt,
+        };
+        // 5) Save tokens (for now in AsyncStorage)
+        dispatch(storeSpotifyTokens(spotifyTokens));
+
+        // 6) Redirect back to Playlists
+        router.replace("/Playlists");
       } catch (err) {
         console.log("Callback error:", err);
         setError("Unexpected error handling Spotify callback.");
@@ -144,7 +121,7 @@ const CallbackScreen = () => {
     };
 
     handleSpotifyCallback();
-  }, [code, state, accessToken, expiresAt]);
+  }, [code, state]);
 
   // While loading / exchanging tokens
   if (!error) {

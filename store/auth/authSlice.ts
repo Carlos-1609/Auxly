@@ -60,9 +60,17 @@ const authSlice = createSlice({
     setIsLoading: (state, { payload }) => {
       state.isLoading = payload;
     },
+    setUserAccounts: (state, { payload }) => {
+      state.userAccounts = payload;
+    },
   },
 });
 
-export const { setUser, clearUser, setIsLoading, setUserBasic } =
-  authSlice.actions;
+export const {
+  setUser,
+  clearUser,
+  setIsLoading,
+  setUserBasic,
+  setUserAccounts,
+} = authSlice.actions;
 export default authSlice.reducer;

@@ -1,16 +1,16 @@
-import { FirebaseDB } from "@/firebase/firebaseConfig";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   generateRandomString,
   getChallengeFromVerifier,
   getCodeVerifier,
+  refreshSpotifyToken,
 } from "@/store/playlists/playlistThunk";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import { doc, getDoc } from "firebase/firestore";
 import { Pressable, ScrollView, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 const Playlists = () => {
   const user = useAppSelector((state) => state.auth);
@@ -130,18 +130,19 @@ const Playlists = () => {
     //   return doc.data();
     // });
     // console.log(...test);
-    const docRef = doc(
-      FirebaseDB,
-      "userAccounts",
-      "bQHe55nahtM2Ci12sUEENxyibd72"
-    );
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      console.log("Document data:", docSnap.data());
+    const res = await dispatch(refreshSpotifyToken());
+    if (res.ok) {
+      Toast.show({
+        type: "success",
+        text1: "Tokens were refreshed",
+        text2: "Spotify tokens saved in firebase",
+      });
     } else {
-      // docSnap.data() will be undefined in this case
-      console.log("No such document!");
+      Toast.show({
+        type: "error",
+        text1: "Tokens were not refreshed",
+        text2: "Spotify tokens not saved in firebase",
+      });
     }
   };
 
@@ -168,7 +169,7 @@ const Playlists = () => {
           <Text className="text-text-primary">Load Recent Songs</Text>
         </Pressable>
         <Pressable onPress={firebaseTest} className="bg-orange-400 p-4 mt-5 ">
-          <Text className="text-text-primary font-bold">Firebase Test</Text>
+          <Text className="text-text-primary font-bold">Refresh Token</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
