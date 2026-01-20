@@ -1,9 +1,10 @@
+import SettingsItem from "@/components/ui/SettingsItem";
 import { userLogoutFirebase } from "@/firebase/providers";
 import { clearUser } from "@/store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { ScrollView, Text, TouchableOpacity } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const Profile = () => {
@@ -18,12 +19,17 @@ const Profile = () => {
     router.push("/auth/SignIn");
   };
   return (
-    <SafeAreaView
-      edges={["top"]}
-      className="bg-bg-base flex-1 items-center justify-start"
-    >
+    <SafeAreaView edges={["top"]} className="bg-bg-base flex-1 ">
       <ScrollView>
         <Text>This is the playlist screen</Text>
+        <View>
+          <SettingsItem
+            icon="person-circle-outline"
+            title="Profile Settings"
+            subtitle="Update and modify your profile"
+          />
+        </View>
+
         <TouchableOpacity onPress={test} className="bg-blue-500 mt-3 p-5 mx-3">
           <Text className="text-white">Check User</Text>
         </TouchableOpacity>
