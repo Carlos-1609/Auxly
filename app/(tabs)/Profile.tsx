@@ -2,17 +2,27 @@ import SettingsItem from "@/components/ui/SettingsItem";
 import { userLogoutFirebase } from "@/firebase/providers";
 import { clearUser } from "@/store/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import {
+  Pressable,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const Profile = () => {
   const user = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const [showLogout, setShowLogout] = useState(false);
   const test = () => console.log(user);
   const logout = async () => {
+    setShowLogout(false);
     await AsyncStorage.clear();
     await userLogoutFirebase();
     dispatch(clearUser());
@@ -20,7 +30,7 @@ const Profile = () => {
   };
   return (
     <SafeAreaView edges={["top"]} className="bg-bg-base flex-1 ">
-      <ScrollView>
+      <ScrollView contentContainerClassName="px-6 ">
         <Text>This is the playlist screen</Text>
         <View>
           <SettingsItem
@@ -29,14 +39,89 @@ const Profile = () => {
             subtitle="Update and modify your profile"
           />
         </View>
+        <SettingsItem
+          icon="lock-closed-outline"
+          title="Privacy"
+          subtitle="Change your password"
+          onPress={() => {}}
+        />
+
+        <Pressable
+          onPress={() => setShowLogout(true)}
+          className="bg-bg-card rounded-lg flex-row items-center my-4 py-3 px-4 w-full"
+          android_ripple={{ color: "rgba(255, 107, 107, 0.15)" }}
+          style={{
+            shadowColor: "#FF6B6B",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.18,
+            shadowRadius: 4,
+            elevation: 4,
+          }}
+        >
+          <View className="bg-error/15 rounded-lg p-3">
+            <Ionicons name={"log-out-outline"} size={24} color="red" />
+          </View>
+
+          <View className="flex-1 ml-3">
+            <Text className="text-text-primary text-[16px] font-semibold">
+              Logout
+            </Text>
+            <Text
+              className="text-text-secondary text-[13px]"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              Sign out of your account
+            </Text>
+          </View>
+
+          <Ionicons name="chevron-forward" size={22} color="red" />
+        </Pressable>
 
         <TouchableOpacity onPress={test} className="bg-blue-500 mt-3 p-5 mx-3">
           <Text className="text-white">Check User</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={logout} className="bg-red-500 mt-5 p-5 mx-3">
-          <Text className="text-white">Logout</Text>
-        </TouchableOpacity>
       </ScrollView>
+      {showLogout && (
+        <View className="absolute inset-0 justify-center items-center bg-black/50">
+          <View className="bg-bg-card rounded-2xl w-[280px] overflow-hidden">
+            {/* Title */}
+            <View className="px-6 pt-8 pb-6">
+              <Text className="text-text-primary text-center text-[16px] leading-5 font-bold">
+                Log out of your account?
+              </Text>
+            </View>
+
+            {/* Divider */}
+            <View className="h-[0.5px] bg-gray-700" />
+
+            {/* Log out button */}
+            <Pressable
+              onPress={logout}
+              className="py-3.5"
+              android_ripple={{ color: "rgba(255, 107, 107, 0.15)" }}
+            >
+              <Text className="text-error text-center text-[15px] font-bold">
+                Log out
+              </Text>
+            </Pressable>
+
+            {/* Divider */}
+            <View className="h-[0.5px] bg-gray-700" />
+
+            {/* Cancel button */}
+            <Pressable
+              onPress={() => setShowLogout(false)}
+              className="py-3.5"
+              android_ripple={{ color: "rgba(255, 255, 255, 0.1)" }}
+            >
+              <Text className="text-text-primary text-center text-[15px] font-bold">
+                Cancel
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };

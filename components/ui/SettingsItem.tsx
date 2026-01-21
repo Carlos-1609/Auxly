@@ -22,7 +22,7 @@ const SettingsItem = (props: SettingsItem) => {
       }}
     >
       <View className="bg-glow-accent/15 rounded-lg p-3">
-        <Ionicons name="person-circle-outline" size={24} color="orange" />
+        <Ionicons name={props.icon as any} size={24} color="orange" />
       </View>
 
       <View className="flex-1 ml-3">
