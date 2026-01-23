@@ -6,13 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const Profile = () => {
@@ -21,6 +15,9 @@ const Profile = () => {
   const router = useRouter();
   const [showLogout, setShowLogout] = useState(false);
   const test = () => console.log(user);
+  const blurhash =
+    "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
+
   const logout = async () => {
     setShowLogout(false);
     await AsyncStorage.clear();
@@ -28,59 +25,86 @@ const Profile = () => {
     dispatch(clearUser());
     router.push("/auth/SignIn");
   };
+  // source={require("../../assets/images/USERIMG.jpg")}
   return (
     <SafeAreaView edges={["top"]} className="bg-bg-base flex-1 ">
-      <ScrollView contentContainerClassName="px-6 ">
-        <Text>This is the playlist screen</Text>
+      <ScrollView contentContainerClassName="px-6 items-center">
+        <View className="bg-bg-card rounded-full overflow-hidden w-40 h-40 border-4 border-gold">
+          <Image
+            source={{ uri: "https://picsum.photos/400/300" }}
+            className="w-full h-full"
+            resizeMode="cover"
+          />
+        </View>
+        <View className="items-center mt-2 mb-2">
+          <Text className="text-text-primary ">{user.displayName}</Text>
+          <Text className="text-text-muted">{user.email}</Text>
+        </View>
+
         <View>
+          <View className="mt-1">
+            <Text className="text-text-primary font-bold">ACCOUNT</Text>
+          </View>
           <SettingsItem
             icon="person-circle-outline"
             title="Profile Settings"
             subtitle="Update and modify your profile"
           />
+
+          <SettingsItem
+            icon="lock-closed-outline"
+            title="Privacy"
+            subtitle="Change your password"
+            onPress={() => {}}
+          />
         </View>
-        <SettingsItem
-          icon="lock-closed-outline"
-          title="Privacy"
-          subtitle="Change your password"
-          onPress={() => {}}
-        />
-
-        <Pressable
-          onPress={() => setShowLogout(true)}
-          className="bg-bg-card rounded-lg flex-row items-center my-4 py-3 px-4 w-full"
-          android_ripple={{ color: "rgba(255, 107, 107, 0.15)" }}
-          style={{
-            shadowColor: "#FF6B6B",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.18,
-            shadowRadius: 4,
-            elevation: 4,
-          }}
-        >
-          <View className="bg-error/15 rounded-lg p-3">
-            <Ionicons name={"log-out-outline"} size={24} color="red" />
+        <View>
+          <View className="mt-1">
+            <Text className="text-text-primary font-bold">CONNECTIONS</Text>
           </View>
+          <SettingsItem
+            icon="musical-notes-outline"
+            title="Connected Accounts"
+            subtitle="Manage linked music services"
+          />
+        </View>
 
-          <View className="flex-1 ml-3">
-            <Text className="text-text-primary text-[16px] font-semibold">
-              Logout
-            </Text>
-            <Text
-              className="text-text-secondary text-[13px]"
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              Sign out of your account
-            </Text>
+        <View>
+          <View className="mt-1">
+            <Text className="text-text-primary font-bold">SESSION</Text>
           </View>
+          <Pressable
+            onPress={() => setShowLogout(true)}
+            className="bg-bg-card rounded-lg flex-row items-center my-4 py-3 px-4 w-full"
+            android_ripple={{ color: "rgba(255, 107, 107, 0.15)" }}
+            style={{
+              shadowColor: "#FF6B6B",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.18,
+              shadowRadius: 4,
+              elevation: 4,
+            }}
+          >
+            <View className="bg-error/15 rounded-lg p-3">
+              <Ionicons name={"log-out-outline"} size={24} color="red" />
+            </View>
 
-          <Ionicons name="chevron-forward" size={22} color="red" />
-        </Pressable>
+            <View className="flex-1 ml-3">
+              <Text className="text-text-primary text-[16px] font-semibold">
+                Logout
+              </Text>
+              <Text
+                className="text-text-secondary text-[13px]"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                Sign out of your account
+              </Text>
+            </View>
 
-        <TouchableOpacity onPress={test} className="bg-blue-500 mt-3 p-5 mx-3">
-          <Text className="text-white">Check User</Text>
-        </TouchableOpacity>
+            <Ionicons name="chevron-forward" size={22} color="red" />
+          </Pressable>
+        </View>
       </ScrollView>
       {showLogout && (
         <View className="absolute inset-0 justify-center items-center bg-black/50">
