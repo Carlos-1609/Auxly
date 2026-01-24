@@ -14,9 +14,6 @@ const Profile = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const [showLogout, setShowLogout] = useState(false);
-  const test = () => console.log(user);
-  const blurhash =
-    "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
   const logout = async () => {
     setShowLogout(false);
@@ -25,11 +22,10 @@ const Profile = () => {
     dispatch(clearUser());
     router.push("/auth/SignIn");
   };
-  // source={require("../../assets/images/USERIMG.jpg")}
   return (
     <SafeAreaView edges={["top"]} className="bg-bg-base flex-1 ">
       <ScrollView contentContainerClassName="px-6 items-center">
-        <View className="bg-bg-card rounded-full overflow-hidden w-40 h-40 border-4 border-gold">
+        <View className="bg-bg-card rounded-full overflow-hidden w-40 h-40 border-4 border-gold mt-4">
           <Image
             source={{ uri: "https://picsum.photos/400/300" }}
             className="w-full h-full"
@@ -66,6 +62,7 @@ const Profile = () => {
             icon="musical-notes-outline"
             title="Connected Accounts"
             subtitle="Manage linked music services"
+            onPress={() => router.push("/profile/ConnectedAccounts")}
           />
         </View>
 

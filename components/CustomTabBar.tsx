@@ -1,5 +1,6 @@
 // components/CustomTabBar.tsx
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { BlurView } from "expo-blur";
 import { Pressable, Text, View } from "react-native";
 
 const CustomTabBar = ({
@@ -8,10 +9,14 @@ const CustomTabBar = ({
   navigation,
 }: BottomTabBarProps) => {
   return (
-    // Bottom strip background (behind the pill)
-    <View className="bg-bg-base pt-3">
-      {/* Pill container */}
-      <View className="mx-5 mb-7 flex-row items-center rounded-2xl bg-bg-card px-4 py-3 shadow-soft">
+    <View className="absolute bottom-0 left-0 right-0 pt-3">
+      {/* BlurView as the pill container */}
+      <BlurView
+        intensity={60}
+        tint="dark" // or "light", "default", "extraLight"
+        className="mx-5 mb-7 flex-row items-center rounded-2xl px-4 py-3 overflow-hidden"
+        style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }} // Optional: add slight tint
+      >
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
 
@@ -19,7 +24,6 @@ const CustomTabBar = ({
 
           const isFocused = state.index === index;
 
-          // Use theme colors
           const color = isFocused
             ? "#fb923c" /* success */
             : "#FFD580"; /* text-muted */
@@ -31,7 +35,6 @@ const CustomTabBar = ({
               canPreventDefault: true,
             });
 
-            //Check if the pressed tab is the current one
             if (!isFocused && !event.defaultPrevented) {
               navigation.navigate(route.name);
             }
@@ -45,7 +48,6 @@ const CustomTabBar = ({
                 isFocused ? "bg-gold/10 rounded-xl" : ""
               }`}
             >
-              {/* Icon from Tabs.Screen options */}
               {options.tabBarIcon &&
                 options.tabBarIcon({
                   focused: isFocused,
@@ -53,7 +55,6 @@ const CustomTabBar = ({
                   size: 22,
                 })}
 
-              {/* Label */}
               <Text
                 className={`mt-1 text-[11px] ${
                   isFocused ? "text-text-primary font-bold" : "text-text-muted"
@@ -64,7 +65,7 @@ const CustomTabBar = ({
             </Pressable>
           );
         })}
-      </View>
+      </BlurView>
     </View>
   );
 };

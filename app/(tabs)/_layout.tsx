@@ -2,10 +2,15 @@ import CustomTabBar from "@/components/CustomTabBar";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import { useCheckAuth } from "@/hooks/useCheckAuth";
 import { Ionicons } from "@expo/vector-icons";
-import { Redirect, Tabs } from "expo-router";
+import { Redirect, Tabs, useSegments } from "expo-router";
 
 const TabsLayout = () => {
   const { status, isLoggedIn } = useCheckAuth();
+  const segments = useSegments();
+  // segments example:
+  // ["(tabs)", "profile"]                    -> profile tab (show)
+  // ["(tabs)", "profile", "account-settings"] -> nested (hide)
+  const hideTabBar = segments[1] === "profile" && segments.length > 2;
 
   if (status === "checking") {
     console.log("Checking your session!");
@@ -19,18 +24,23 @@ const TabsLayout = () => {
     return <Redirect href="/auth/SignIn" />;
   }
 
+  console.log("TABS LOGIC RUNNING");
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: "transparent",
-          elevation: 0,
-          borderTopWidth: 0,
-          position: "absolute",
-        },
+
+        tabBarStyle: hideTabBar
+          ? { display: "none" }
+          : {
+              position: "absolute",
+              backgroundColor: "transparent",
+              borderTopWidth: 0,
+              elevation: 0,
+            },
       }}
-      tabBar={(props) => <CustomTabBar {...props} />}
+      tabBar={(props) => (hideTabBar ? null : <CustomTabBar {...props} />)}
     >
       <Tabs.Protected guard={isLoggedIn}>
         <Tabs.Screen
@@ -66,7 +76,7 @@ const TabsLayout = () => {
 
       <Tabs.Protected guard={isLoggedIn}>
         <Tabs.Screen
-          name="Profile"
+          name="profile"
           options={{
             title: "Profile",
             tabBarIcon: ({ color, focused, size }) => (

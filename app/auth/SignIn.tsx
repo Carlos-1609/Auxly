@@ -169,7 +169,10 @@ const SignIn = () => {
 
           {/* SOCIALS (same width as form) */}
           <View className="gap-y-5 mt-2">
-            <TouchableOpacity className="h-12 rounded-2xl bg-black flex-row items-center justify-center gap-x-3 shadow-md shadow-black/30 active:opacity-80">
+            <TouchableOpacity
+              className="h-12 rounded-2xl bg-black flex-row items-center justify-center gap-x-3 shadow-md shadow-black/30 active:opacity-80"
+              onPress={() => router.push("/(tabs)/profile")}
+            >
               <Image
                 source={require("../../assets/images/appleIcon.png")}
                 className="h-5 w-5"
