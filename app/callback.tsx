@@ -44,12 +44,11 @@ const CallbackScreen = () => {
           setError("Missing authorization code from Spotify.");
           return;
         }
-        //We dont have the tokens for spotify
-        console.log("NO SPOTIFY TOKENS");
+
         // 2) Read stored verifier + state
         const storedState = await AsyncStorage.getItem("spotify_auth_state");
         const storedVerifier = await AsyncStorage.getItem(
-          "spotify_code_verifier"
+          "spotify_code_verifier",
         );
 
         // const verifyAccessToken = await Asynctorage.getItem(

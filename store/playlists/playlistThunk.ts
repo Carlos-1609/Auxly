@@ -1,47 +1,11 @@
 import { FirebaseDB } from "@/firebase/firebaseConfig";
 import { SpotifyTokens } from "@/types/auth";
-import * as Crypto from "expo-crypto";
 import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { setIsLoading, setUserAccounts } from "../auth/authSlice";
 import { getUserAccountTokens } from "../auth/authThunk";
 import { AppDispatch, RootState } from "../store";
 
 const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID!;
-
-export const generateRandomString = async (length: number) => {
-  const possible =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-  // Get random bytes
-  const randomBytes = await Crypto.getRandomBytesAsync(length);
-
-  let text = "";
-  for (let i = 0; i < randomBytes.length; i++) {
-    text += possible[randomBytes[i] % possible.length];
-  }
-
-  return text;
-};
-
-export const getCodeVerifier = async () => {
-  const code = await generateRandomString(64);
-  return code;
-};
-
-export const getChallengeFromVerifier = async (verifier: string) => {
-  const base64 = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    verifier,
-    { encoding: Crypto.CryptoEncoding.BASE64 }
-  );
-
-  const base64url = base64
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-
-  return base64url;
-};
 
 export const refreshSpotifyToken = () => {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
@@ -144,7 +108,7 @@ export const storeSpotifyTokens = (spotifyTokens: SpotifyTokens) => {
             spotifyTokenExpiresAt: spotifyTokens.spotifyTokenExpiresAt,
           },
         },
-        { merge: true }
+        { merge: true },
       );
       dispatch(setIsLoading(false));
       return {
