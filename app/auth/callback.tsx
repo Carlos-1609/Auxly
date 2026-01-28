@@ -1,5 +1,7 @@
 // app/callback.tsx
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
+import { setUserAccounts } from "@/store/auth/authSlice";
+import { getUserAccountTokens } from "@/store/auth/authThunk";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { storeSpotifyTokens } from "@/store/playlists/playlistThunk";
 import { SpotifyTokens } from "@/types/auth";
@@ -12,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID!;
 //For production we just use auxly://callback
-const SPOTIFY_REDIRECT_URI = Linking.createURL("callback"); // must match what you used before
+const SPOTIFY_REDIRECT_URI = Linking.createURL("auth/callback"); // must match what you used before
 
 type SpotifyTokenResponse = {
   access_token: string;
@@ -36,40 +38,57 @@ const CallbackScreen = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // wrap async logic in a function
+    let cancelled = false;
+
     const handleSpotifyCallback = async () => {
       try {
-        // 1) Handle error from Spotify (user denied, etc.)
-        if (!code) {
-          setError("Missing authorization code from Spotify.");
+        console.log("CALLBACK SCREEN WAS RUN");
+
+        // ✅ If user didn't start linking, this is a dev deep-link restore. Leave quietly.
+        const inProgress = await AsyncStorage.getItem(
+          "spotify_auth_in_progress",
+        );
+        if (inProgress !== "1") {
+          router.replace("/Playlists"); // or "/auth" if not logged in
           return;
         }
 
-        // 2) Read stored verifier + state
+        // ✅ If Spotify didn't send a code, also leave quietly (dev reload / stale link)
+        if (!code) {
+          await AsyncStorage.multiRemove([
+            "spotify_auth_in_progress",
+            "spotify_code_verifier",
+            "spotify_auth_state",
+          ]);
+          router.replace("/Playlists");
+          return;
+        }
+
         const storedState = await AsyncStorage.getItem("spotify_auth_state");
         const storedVerifier = await AsyncStorage.getItem(
           "spotify_code_verifier",
         );
 
-        // const verifyAccessToken = await Asynctorage.getItem(
-        //   "spotify_access_token"
-        // );
-
-        // if (verifyAccessToken) {
-        //   console.log("Spotify Access Token Detected for DEV ONLY");
-        //   const tokennn = await AsyncStorage.getItem("spotify_access_token");
-        //   console.log("THIS THE ACCESS TOKEN: ", tokennn);
-        //   router.push("/Playlists");
-        //   return;
-        // }
-
+        // If something is missing during an active flow, show real error
         if (!storedVerifier) {
-          setError("Missing code_verifier. Please try connecting again.");
+          if (!cancelled)
+            setError("Missing code_verifier. Please try connecting again.");
+          await AsyncStorage.multiRemove([
+            "spotify_auth_in_progress",
+            "spotify_code_verifier",
+            "spotify_auth_state",
+          ]);
           return;
         }
 
         if (!storedState || storedState !== state) {
-          setError("State mismatch. Possible invalid auth response.");
+          if (!cancelled)
+            setError("State mismatch. Please try connecting again.");
+          await AsyncStorage.multiRemove([
+            "spotify_auth_in_progress",
+            "spotify_code_verifier",
+            "spotify_auth_state",
+          ]);
           return;
         }
 
@@ -108,19 +127,35 @@ const CallbackScreen = () => {
           spotifyRefreshToken: data.refresh_token,
           spotifyTokenExpiresAt: tokenExpiresAt,
         };
-        // 5) Save tokens (for now in AsyncStorage)
+        // 5) Save tokens
         dispatch(storeSpotifyTokens(spotifyTokens));
+        const userAccounts = await getUserAccountTokens(user.uid);
+        dispatch(setUserAccounts(userAccounts));
 
-        // 6) Redirect back to Playlists
+        // ✅ On success, clear the flags so callback can't re-run accidentally later
+        await AsyncStorage.multiRemove([
+          "spotify_auth_in_progress",
+          "spotify_code_verifier",
+          "spotify_auth_state",
+        ]);
+
         router.replace("/Playlists");
       } catch (err) {
         console.log("Callback error:", err);
-        setError("Unexpected error handling Spotify callback.");
+        if (!cancelled) setError("Unexpected error handling Spotify callback.");
+        await AsyncStorage.multiRemove([
+          "spotify_auth_in_progress",
+          "spotify_code_verifier",
+          "spotify_auth_state",
+        ]);
       }
     };
 
     handleSpotifyCallback();
-  }, [code, state]);
+    return () => {
+      cancelled = true;
+    };
+  }, [code, state, router]);
 
   // While loading / exchanging tokens
   if (!error) {
@@ -147,7 +182,7 @@ const CallbackScreen = () => {
         <View className="flex items-center ">
           <TouchableOpacity
             className="bg-error w-20 p-2 rounded-md "
-            onPress={() => router.push("/Playlists")}
+            onPress={() => router.replace("/Playlists")}
           >
             <Text className="text-text-primary font-bold">Go back</Text>
           </TouchableOpacity>

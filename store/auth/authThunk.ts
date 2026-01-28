@@ -130,50 +130,42 @@ export const connectSpotifyAccount = (primary: boolean) => {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     try {
       dispatch(setIsLoading(true));
-      const uid = getState().auth.uid;
+
       const verifier = await getCodeVerifier();
-      await AsyncStorage.setItem("spotify_code_verifier", verifier);
       const challenge = await getChallengeFromVerifier(verifier);
-      // Builidng the URL
+      const redirectUri = Linking.createURL("auth/callback");
+      const state = await generateRandomString(16);
+
+      await AsyncStorage.multiSet([
+        ["spotify_auth_in_progress", "1"],
+        ["spotify_code_verifier", verifier],
+        ["spotify_auth_state", state],
+      ]);
+
       const scope =
         "user-read-recently-played playlist-modify-private playlist-modify-public user-top-read user-read-private user-read-email";
-      const redirectUri = Linking.createURL("callback");
-      console.log("REDIRECT URI →", redirectUri);
-      const state = await generateRandomString(16);
-      await AsyncStorage.setItem("spotify_auth_state", state);
 
       const params = {
         response_type: "code",
-        client_id: process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID,
-        scope: scope,
+        client_id: process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID!,
+        scope,
         code_challenge_method: "S256",
         code_challenge: challenge,
         redirect_uri: redirectUri,
-        state: state,
+        state,
       };
-      // Turn params object into URL-encoded query string
-      const query = new URLSearchParams(
-        params as Record<string, string>,
-      ).toString();
 
-      // Final URL
+      const query = new URLSearchParams(params).toString();
       const authUrl = `https://accounts.spotify.com/authorize?${query}`;
 
-      // Open Spotify auth page
       await Linking.openURL(authUrl);
-      if (primary) {
-        console.log("ENTRAMOS AL PRIMARY");
-        const userAccount = await getUserAccountTokens(uid);
-        dispatch(setUserAccounts(userAccount));
-      }
+
+      return { ok: true };
     } catch (error: any) {
       console.log(error);
-      return {
-        ok: false,
-        errorMessage: error.message,
-      };
+      return { ok: false, errorMessage: error.message };
     } finally {
-      dispatch(setIsLoading(false)); // Stop loading regardless of success/failure
+      dispatch(setIsLoading(false));
     }
   };
 };
