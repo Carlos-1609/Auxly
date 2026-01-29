@@ -42,8 +42,6 @@ const CallbackScreen = () => {
 
     const handleSpotifyCallback = async () => {
       try {
-        console.log("CALLBACK SCREEN WAS RUN");
-
         // ✅ If user didn't start linking, this is a dev deep-link restore. Leave quietly.
         const inProgress = await AsyncStorage.getItem(
           "spotify_auth_in_progress",
@@ -59,6 +57,7 @@ const CallbackScreen = () => {
             "spotify_auth_in_progress",
             "spotify_code_verifier",
             "spotify_auth_state",
+            "spotify_primary",
           ]);
           router.replace("/Playlists");
           return;
@@ -68,6 +67,7 @@ const CallbackScreen = () => {
         const storedVerifier = await AsyncStorage.getItem(
           "spotify_code_verifier",
         );
+        const primary = await AsyncStorage.getItem("spotify_primary");
 
         // If something is missing during an active flow, show real error
         if (!storedVerifier) {
@@ -77,6 +77,7 @@ const CallbackScreen = () => {
             "spotify_auth_in_progress",
             "spotify_code_verifier",
             "spotify_auth_state",
+            "spotify_primary",
           ]);
           return;
         }
@@ -88,6 +89,7 @@ const CallbackScreen = () => {
             "spotify_auth_in_progress",
             "spotify_code_verifier",
             "spotify_auth_state",
+            "spotify_primary",
           ]);
           return;
         }
@@ -127,16 +129,24 @@ const CallbackScreen = () => {
           spotifyRefreshToken: data.refresh_token,
           spotifyTokenExpiresAt: tokenExpiresAt,
         };
-        // 5) Save tokens
-        dispatch(storeSpotifyTokens(spotifyTokens));
-        const userAccounts = await getUserAccountTokens(user.uid);
-        dispatch(setUserAccounts(userAccounts));
+
+        // 5) Save tokens for primary user
+        if (primary === "1") {
+          console.log("THIS IS A PRIMARY ACCOUNT");
+          dispatch(storeSpotifyTokens(spotifyTokens));
+          const userAccounts = await getUserAccountTokens(user.uid);
+          dispatch(setUserAccounts(userAccounts));
+        } else {
+          //Save the secondary account tokens
+          console.log("THIS IS A SECONDARY ACCOUNT");
+        }
 
         // ✅ On success, clear the flags so callback can't re-run accidentally later
         await AsyncStorage.multiRemove([
           "spotify_auth_in_progress",
           "spotify_code_verifier",
           "spotify_auth_state",
+          "spotify_primary",
         ]);
 
         router.replace("/Playlists");
@@ -147,6 +157,7 @@ const CallbackScreen = () => {
           "spotify_auth_in_progress",
           "spotify_code_verifier",
           "spotify_auth_state",
+          "spotify_primary",
         ]);
       }
     };

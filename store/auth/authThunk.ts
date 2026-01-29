@@ -126,7 +126,7 @@ export const getUserAccountTokens = async (id: string) => {
   }
 };
 
-export const connectSpotifyAccount = (primary: boolean) => {
+export const connectSpotifyAccount = (primary: string) => {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     try {
       dispatch(setIsLoading(true));
@@ -135,15 +135,21 @@ export const connectSpotifyAccount = (primary: boolean) => {
       const challenge = await getChallengeFromVerifier(verifier);
       const redirectUri = Linking.createURL("auth/callback");
       const state = await generateRandomString(16);
+      let scope;
 
       await AsyncStorage.multiSet([
         ["spotify_auth_in_progress", "1"],
         ["spotify_code_verifier", verifier],
         ["spotify_auth_state", state],
+        ["spotify_primary", primary],
       ]);
 
-      const scope =
-        "user-read-recently-played playlist-modify-private playlist-modify-public user-top-read user-read-private user-read-email";
+      if (primary === "1") {
+        scope =
+          "user-read-recently-played playlist-modify-private playlist-modify-public user-top-read user-read-private user-read-email";
+      } else {
+        scope = "user-top-read";
+      }
 
       const params = {
         response_type: "code",

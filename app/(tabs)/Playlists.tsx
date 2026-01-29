@@ -1,12 +1,6 @@
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  generateRandomString,
-  getChallengeFromVerifier,
-  getCodeVerifier,
-  refreshSpotifyToken,
-} from "@/store/playlists/playlistThunk";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Linking from "expo-linking";
+import { refreshSpotifyToken } from "@/store/playlists/playlistThunk";
+import { FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,47 +10,6 @@ const Playlists = () => {
   const user = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const router = useRouter();
-
-  const spotifyButtonLink = async () => {
-    const verifier = await getCodeVerifier();
-    await AsyncStorage.setItem("spotify_code_verifier", verifier);
-    const challenge = await getChallengeFromVerifier(verifier);
-    // Builidng the URL
-    const scope =
-      "user-read-recently-played playlist-modify-private playlist-modify-public user-top-read user-read-private user-read-email";
-    const redirectUri = Linking.createURL("callback");
-    console.log("REDIRECT URI →", redirectUri);
-    const state = await generateRandomString(16);
-    await AsyncStorage.setItem("spotify_auth_state", state);
-
-    const params = {
-      response_type: "code",
-      client_id: process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID,
-      scope: scope,
-      code_challenge_method: "S256",
-      code_challenge: challenge,
-      redirect_uri: redirectUri,
-      state: state,
-    };
-    // Turn params object into URL-encoded query string
-    const query = new URLSearchParams(
-      params as Record<string, string>
-    ).toString();
-
-    // Final URL
-    const authUrl = `https://accounts.spotify.com/authorize?${query}`;
-
-    // Open Spotify auth page
-    await Linking.openURL(authUrl);
-  };
-
-  const debugTokens = async () => {
-    const a = await AsyncStorage.getItem("spotify_access_token");
-    const r = await AsyncStorage.getItem("spotify_refresh_token");
-    const e = await AsyncStorage.getItem("spotify_token_expires_at");
-    const uid = await AsyncStorage.getItem("spotify_user_id");
-    console.log("TOKEN DEBUG →", { a, r, e, uid });
-  };
 
   const loadRecentSpotifySongs = async () => {
     try {
@@ -73,7 +26,7 @@ const Playlists = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const tracks = await response.json();
@@ -99,7 +52,7 @@ const Playlists = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(body),
-        }
+        },
       );
 
       const playlist = await playlistResponse.json();
@@ -115,7 +68,7 @@ const Playlists = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ uris: trackList }),
-        }
+        },
       );
 
       //Need song uris
@@ -154,15 +107,6 @@ const Playlists = () => {
       <ScrollView>
         <Text className="text-text-primary">This is the playlist screen</Text>
         <Pressable
-          onPress={spotifyButtonLink}
-          className="bg-green-600 p-4 mt-5 "
-        >
-          <Text className="text-text-primary">Link Spotify Account</Text>
-        </Pressable>
-        <Pressable onPress={debugTokens} className="bg-cyan-600 p-4 mt-5 ">
-          <Text className="text-text-primary">Check Spotify Tokens</Text>
-        </Pressable>
-        <Pressable
           onPress={loadRecentSpotifySongs}
           className="bg-red-600 p-4 mt-5 "
         >
@@ -172,6 +116,9 @@ const Playlists = () => {
           <Text className="text-text-primary font-bold">Refresh Token</Text>
         </Pressable>
       </ScrollView>
+      <Pressable className="h-[55px] w-[55px] bg-white rounded-full items-center justify-center absolute right-10 top-20">
+        <FontAwesome5 name="plus" size={28} color="#FFD580" />
+      </Pressable>
     </SafeAreaView>
   );
 };

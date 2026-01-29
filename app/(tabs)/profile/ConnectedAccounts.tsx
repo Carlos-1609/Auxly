@@ -28,11 +28,9 @@ const ConnectedAccounts = () => {
       setProvider("SPOTIFY");
       setShowDialog(true);
     } else {
-      const ok = await dispatch(connectSpotifyAccount(true));
+      const ok = await dispatch(connectSpotifyAccount("1"));
       if (ok) {
         console.log("TODO OK");
-        //const userAccount = await getUserAccountTokens(uid);
-        //dispatch(setUserAccounts(userAccount));
       }
     }
   };
