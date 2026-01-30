@@ -1,10 +1,8 @@
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { refreshSpotifyToken } from "@/store/playlists/playlistThunk";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Toast from "react-native-toast-message";
 
 const Playlists = () => {
   const user = useAppSelector((state) => state.auth);
@@ -77,28 +75,6 @@ const Playlists = () => {
     }
   };
 
-  const firebaseTest = async () => {
-    //const querySnapShot = await getDocs(collection(FirebaseDB, "userAccounts"));
-    // const test = querySnapShot.docs.map((doc) => {
-    //   return doc.data();
-    // });
-    // console.log(...test);
-    const res = await dispatch(refreshSpotifyToken());
-    if (res.ok) {
-      Toast.show({
-        type: "success",
-        text1: "Tokens were refreshed",
-        text2: "Spotify tokens saved in firebase",
-      });
-    } else {
-      Toast.show({
-        type: "error",
-        text1: "Tokens were not refreshed",
-        text2: "Spotify tokens not saved in firebase",
-      });
-    }
-  };
-
   return (
     <SafeAreaView
       edges={["top"]}
@@ -111,9 +87,6 @@ const Playlists = () => {
           className="bg-red-600 p-4 mt-5 "
         >
           <Text className="text-text-primary">Load Recent Songs</Text>
-        </Pressable>
-        <Pressable onPress={firebaseTest} className="bg-orange-400 p-4 mt-5 ">
-          <Text className="text-text-primary font-bold">Refresh Token</Text>
         </Pressable>
       </ScrollView>
       <Pressable className="h-[55px] w-[55px] bg-white rounded-full items-center justify-center absolute right-10 top-20">
