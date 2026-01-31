@@ -1,13 +1,25 @@
+import PlaylistModal from "@/components/PlaylistModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, ScrollView, Text } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 const Playlists = () => {
   const user = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const handleCreatePlaylist = () => {
+    // TODO: open modal / bottom sheet to enter playlist name
+    console.log("Create playlist pressed");
+    setShowPlaylistModal(true);
+  };
 
   const loadRecentSpotifySongs = async () => {
     try {
@@ -76,22 +88,43 @@ const Playlists = () => {
   };
 
   return (
-    <SafeAreaView
-      edges={["top"]}
-      className="bg-bg-base flex-1 items-center justify-start"
-    >
-      <ScrollView>
+    <SafeAreaView edges={["top"]} className="bg-bg-base flex-1">
+      <ScrollView contentContainerClassName="">
         <Text className="text-text-primary">This is the playlist screen</Text>
+
+        {/* Testing button (you said ignore this) */}
         <Pressable
           onPress={loadRecentSpotifySongs}
-          className="bg-red-600 p-4 mt-5 "
+          className="bg-red-600 p-4 mt-5 mx-5"
         >
           <Text className="text-text-primary">Load Recent Songs</Text>
         </Pressable>
       </ScrollView>
-      <Pressable className="h-[55px] w-[55px] bg-white rounded-full items-center justify-center absolute right-10 top-20">
-        <FontAwesome5 name="plus" size={28} color="#FFD580" />
+
+      {/* Create Playlist FAB */}
+      <Pressable
+        onPress={handleCreatePlaylist}
+        className="h-[58px] w-[58px] rounded-full items-center justify-center absolute right-6 bg-gold"
+        style={{
+          bottom: insets.bottom + 88, // above tab bar, content scrolls under
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.28,
+          shadowRadius: 10,
+          elevation: 10,
+        }}
+        android_ripple={{ color: "rgba(255,255,255,0.18)", borderless: true }}
+        accessibilityRole="button"
+        accessibilityLabel="Create new playlist"
+      >
+        <FontAwesome5 name="plus" size={22} color="#111" />
       </Pressable>
+      {showPlaylistModal ? (
+        <PlaylistModal
+          setPlaylistModal={setShowPlaylistModal}
+          showPlaylistModal={showPlaylistModal}
+        ></PlaylistModal>
+      ) : null}
     </SafeAreaView>
   );
 };
