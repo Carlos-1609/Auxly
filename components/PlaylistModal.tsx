@@ -1,4 +1,5 @@
 import { FontAwesome5 } from "@expo/vector-icons";
+import { useState } from "react";
 import { Modal, Pressable, Text } from "react-native";
 
 import { View } from "react-native";
@@ -14,6 +15,11 @@ const PlaylistModal = ({
   showPlaylistModal,
 }: PlayListModalProps) => {
   const insets = useSafeAreaInsets();
+  const [showMusicAccounts, setShowMusicAccounts] = useState<Boolean>(false);
+
+  const addingAccountHandler = () => {
+    setShowMusicAccounts(true);
+  };
 
   return (
     <Modal
@@ -40,6 +46,7 @@ const PlaylistModal = ({
             <FontAwesome5 name="chevron-down" size={26} color="#999" />
           </Pressable>
           <Pressable
+            onPress={addingAccountHandler}
             className="bg-gold h-[55px] w-[55px] rounded-full justify-center items-center absolute right-5 "
             style={{
               // iOS shadow
@@ -64,6 +71,134 @@ const PlaylistModal = ({
           <Text className="text-text-secondary mt-2">ALOHA</Text>
         </View>
       </View>
+      {showMusicAccounts ? (
+        <View className="absolute inset-0 items-center justify-center">
+          {/* Backdrop (tap outside to close) */}
+          <Pressable
+            onPress={() => setShowMusicAccounts(false)}
+            className="absolute inset-0 bg-black/50"
+            style={({ pressed }) => [{ opacity: pressed ? 0.55 : 1 }]}
+          />
+
+          {/* Card */}
+          <View className="bg-bg-card w-[320px] rounded-2xl px-4 pt-4 pb-5">
+            {/* Header row */}
+            <View className="flex-row items-center justify-between">
+              <Text className="text-text-primary text-lg font-bold">
+                Choose a provider
+              </Text>
+
+              {/* Close button */}
+              <Pressable
+                onPress={() => setShowMusicAccounts(false)}
+                hitSlop={12}
+                className="h-9 w-9 items-center justify-center rounded-full bg-white/10"
+                style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+                accessibilityRole="button"
+                accessibilityLabel="Close provider picker"
+              >
+                <Text className="text-text-primary text-xl">×</Text>
+              </Pressable>
+            </View>
+
+            {/* Optional helper text */}
+            <Text className="text-text-secondary mt-1 text-sm">
+              This will open the provider to connect your account.
+            </Text>
+
+            {/* Buttons */}
+            <View className="mt-4 gap-y-4">
+              <Pressable
+                onPress={() => setShowMusicAccounts(false)}
+                className="rounded-xl bg-[#1DB954] px-4 py-3 flex-row items-center justify-center gap-x-2"
+                style={({ pressed }) => [
+                  {
+                    transform: [{ scale: pressed ? 0.98 : 1 }],
+                    opacity: pressed ? 0.92 : 1,
+                    shadowColor: "#1DB954",
+                    shadowOpacity: 0.35,
+                    shadowRadius: 10,
+                    elevation: 8,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Connect Spotify"
+              >
+                <FontAwesome5 name="spotify" size={26} color="black" />
+                <Text className="text-text-black text-[16px] font-bold">
+                  Spotify
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setShowMusicAccounts(false)}
+                className="rounded-xl bg-[#FA2D48] px-4 py-3 flex-row items-center justify-center gap-x-2"
+                style={({ pressed }) => [
+                  {
+                    transform: [{ scale: pressed ? 0.98 : 1 }],
+                    opacity: pressed ? 0.92 : 1,
+                    shadowColor: "#FA2D48",
+                    shadowOpacity: 0.35,
+                    shadowRadius: 10,
+                    elevation: 8,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Connect Apple Music"
+              >
+                <FontAwesome5 name="apple" size={28} color="white" />
+                <Text className="text-white text-[16px] font-bold mt-1">
+                  Apple
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setShowMusicAccounts(false)}
+                className="rounded-xl bg-[#FF9900] px-4 py-3 flex-row items-center justify-center gap-x-2"
+                style={({ pressed }) => [
+                  {
+                    transform: [{ scale: pressed ? 0.98 : 1 }],
+                    opacity: pressed ? 0.92 : 1,
+                    shadowColor: "#FF9900",
+                    shadowOpacity: 0.3,
+                    shadowRadius: 10,
+                    elevation: 8,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Connect Amazon Music"
+              >
+                <FontAwesome5 name="amazon" size={26} color="black" />
+                <Text className="text-text-black text-[16px] font-bold">
+                  Amazon
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setShowMusicAccounts(false)}
+                className="rounded-xl bg-[#FF0000] px-4 py-3 flex-row items-center justify-center gap-x-2"
+                style={({ pressed }) => [
+                  {
+                    transform: [{ scale: pressed ? 0.98 : 1 }],
+                    opacity: pressed ? 0.92 : 1,
+                    shadowColor: "#FF0000",
+                    shadowOpacity: 0.3,
+                    shadowRadius: 10,
+                    elevation: 8,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Connect YouTube Music"
+              >
+                <FontAwesome5 name="youtube" size={26} color="white" />
+                <Text className="text-white text-[16px] font-bold">
+                  YouTube
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ) : null}
     </Modal>
   );
 };

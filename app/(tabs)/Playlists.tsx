@@ -107,10 +107,10 @@ const Playlists = () => {
         className="h-[58px] w-[58px] rounded-full items-center justify-center absolute right-6 bg-gold"
         style={{
           bottom: insets.bottom + 88, // above tab bar, content scrolls under
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.28,
-          shadowRadius: 10,
+          shadowColor: "#FF9671",
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.5,
+          shadowRadius: 9,
           elevation: 10,
         }}
         android_ripple={{ color: "rgba(255,255,255,0.18)", borderless: true }}

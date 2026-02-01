@@ -24,8 +24,6 @@ const TabsLayout = () => {
     return <Redirect href="/auth/SignIn" />;
   }
 
-  console.log("TABS LOGIC RUNNING");
-
   return (
     <Tabs
       screenOptions={{

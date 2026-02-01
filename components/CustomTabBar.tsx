@@ -15,7 +15,7 @@ const CustomTabBar = ({
         intensity={60}
         tint="dark" // or "light", "default", "extraLight"
         className="mx-5 mb-7 flex-row items-center rounded-2xl px-4 py-3 overflow-hidden"
-        style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }} // Optional: add slight tint
+        style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}
       >
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
