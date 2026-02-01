@@ -92,12 +92,12 @@ const PlaylistModal = ({
               <Pressable
                 onPress={() => setShowMusicAccounts(false)}
                 hitSlop={12}
-                className="h-9 w-9 items-center justify-center rounded-full bg-white/10"
+                className="h-9 w-9 items-center justify-center rounded-full bg-white/10 border border-warning"
                 style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
                 accessibilityRole="button"
                 accessibilityLabel="Close provider picker"
               >
-                <Text className="text-text-primary text-xl">×</Text>
+                <Text className="text-warning text-xl ">×</Text>
               </Pressable>
             </View>
 

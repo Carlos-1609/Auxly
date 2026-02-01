@@ -40,7 +40,7 @@ export default function AuxlyWaveLoader({
     t.value = withRepeat(
       withTiming(bars - 1, { duration: durationMs, easing: Easing.linear }),
       -1,
-      false
+      false,
     );
   }, [bars, durationMs]);
 
@@ -61,7 +61,7 @@ export default function AuxlyWaveLoader({
         height,
         justifyContent: "center",
         alignItems: "center",
-        flexDirection: "row", // 👈 this is the key — side by side instead of vertical
+        flexDirection: "row", //  this is the key — side by side instead of vertical
       }}
     >
       {heights.map((h, i) => {
@@ -73,7 +73,7 @@ export default function AuxlyWaveLoader({
           const bg = interpolateColor(
             intensity,
             [0, 1],
-            [baseColor, highlightColor]
+            [baseColor, highlightColor],
           );
           const scale = interpolate(intensity, [0, 1], [1, 1.04]);
           const shadowOpacity = interpolate(intensity, [0, 1], [0.15, 0.45]);
