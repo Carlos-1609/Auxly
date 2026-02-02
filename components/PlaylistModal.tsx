@@ -15,7 +15,7 @@ const PlaylistModal = ({
   showPlaylistModal,
 }: PlayListModalProps) => {
   const insets = useSafeAreaInsets();
-  const [showMusicAccounts, setShowMusicAccounts] = useState<Boolean>(false);
+  const [showMusicAccounts, setShowMusicAccounts] = useState<boolean>(false);
 
   const addingAccountHandler = () => {
     setShowMusicAccounts(true);
@@ -41,13 +41,14 @@ const PlaylistModal = ({
           {/* Drag / close handle */}
           <Pressable
             onPress={() => setPlaylistModal(false)}
-            className="items-center mb-4"
+            className="items-center mb-3"
+            hitSlop={12}
           >
-            <FontAwesome5 name="chevron-down" size={26} color="#999" />
+            <View className="h-1 w-12 rounded-full bg-white/20" />
           </Pressable>
           <Pressable
             onPress={addingAccountHandler}
-            className="bg-gold h-[55px] w-[55px] rounded-full justify-center items-center absolute right-5 "
+            className="bg-gold h-[55px] w-[55px] rounded-full justify-center items-center absolute right-5 top-5 z-10"
             style={{
               // iOS shadow
               shadowColor: "#FF9671",
@@ -69,6 +70,18 @@ const PlaylistModal = ({
           </Text>
 
           <Text className="text-text-secondary mt-2">ALOHA</Text>
+          <View className="flex-1 justify-end  ">
+            <Pressable className="bg-gold rounded-md py-3 items-center justify-center">
+              <Text className="text-black font-bold text-[14px]">
+                Create a Playlist
+              </Text>
+            </Pressable>
+            <Pressable className="bg-error rounded-md py-3 items-center justify-center mt-4">
+              <Text className="text-black font-bold text-[14px]">
+                Cancel Playlist
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
       {showMusicAccounts ? (
