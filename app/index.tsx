@@ -13,7 +13,7 @@ export default function Index() {
 
   // ✅ Already authenticated → go to playlists
   if (isLoggedIn) {
-    return <Redirect href="/Playlists" />;
+    return <Redirect href="/playlist" />;
   }
 
   // ❌ No session → go to auth flow

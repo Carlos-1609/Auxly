@@ -42,7 +42,7 @@ const SignIn = () => {
       });
       return;
     }
-    router.replace("/Playlists");
+    router.replace("/playlist");
   };
 
   const onUserPasswordReset = async (email: string) => {
@@ -183,7 +183,7 @@ const SignIn = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => router.push("/Playlists")}
+              onPress={() => router.push("/playlist")}
               className="h-12 rounded-2xl bg-white border border-gray-200 flex-row items-center justify-center gap-x-3 shadow-md shadow-black/30 active:opacity-80"
             >
               <Image

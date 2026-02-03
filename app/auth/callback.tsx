@@ -47,7 +47,7 @@ const CallbackScreen = () => {
           "spotify_auth_in_progress",
         );
         if (inProgress !== "1") {
-          router.replace("/Playlists"); // or "/auth" if not logged in
+          router.replace("/playlist"); // or "/auth" if not logged in
           return;
         }
 
@@ -59,7 +59,7 @@ const CallbackScreen = () => {
             "spotify_auth_state",
             "spotify_primary",
           ]);
-          router.replace("/Playlists");
+          router.replace("/playlist");
           return;
         }
 
@@ -149,7 +149,7 @@ const CallbackScreen = () => {
           "spotify_primary",
         ]);
 
-        router.replace("/Playlists");
+        router.replace("/playlist");
       } catch (err) {
         console.log("Callback error:", err);
         if (!cancelled) setError("Unexpected error handling Spotify callback.");
@@ -193,7 +193,7 @@ const CallbackScreen = () => {
         <View className="flex items-center ">
           <TouchableOpacity
             className="bg-error w-20 p-2 rounded-md "
-            onPress={() => router.replace("/Playlists")}
+            onPress={() => router.replace("/playlist")}
           >
             <Text className="text-text-primary font-bold">Go back</Text>
           </TouchableOpacity>

@@ -17,8 +17,7 @@ const Playlists = () => {
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   const handleCreatePlaylist = () => {
     // TODO: open modal / bottom sheet to enter playlist name
-    console.log("Create playlist pressed");
-    setShowPlaylistModal(true);
+    router.push("/playlist/AccountChooser");
   };
 
   const loadRecentSpotifySongs = async () => {

@@ -10,7 +10,8 @@ const TabsLayout = () => {
   // segments example:
   // ["(tabs)", "profile"]                    -> profile tab (show)
   // ["(tabs)", "profile", "account-settings"] -> nested (hide)
-  const hideTabBar = segments[1] === "profile" && segments.length > 2;
+  const hideTabBarProfile = segments[1] === "profile" && segments.length > 2;
+  const hideTabBarPlaylist = segments[1] === "playlist" && segments.length > 2;
 
   if (status === "checking") {
     console.log("Checking your session!");
@@ -29,22 +30,27 @@ const TabsLayout = () => {
       screenOptions={{
         headerShown: false,
 
-        tabBarStyle: hideTabBar
-          ? { display: "none" }
-          : {
-              position: "absolute",
-              backgroundColor: "transparent",
-              borderTopWidth: 0,
-              elevation: 0,
-            },
+        tabBarStyle:
+          hideTabBarProfile || hideTabBarPlaylist
+            ? { display: "none" }
+            : {
+                position: "absolute",
+                backgroundColor: "transparent",
+                borderTopWidth: 0,
+                elevation: 0,
+              },
       }}
-      tabBar={(props) => (hideTabBar ? null : <CustomTabBar {...props} />)}
+      tabBar={(props) =>
+        hideTabBarProfile || hideTabBarPlaylist ? null : (
+          <CustomTabBar {...props} />
+        )
+      }
     >
       <Tabs.Protected guard={isLoggedIn}>
         <Tabs.Screen
-          name="Playlists"
+          name="playlist"
           options={{
-            title: "Playlists",
+            title: "playlist",
             tabBarIcon: ({ color, focused, size }) => (
               <Ionicons
                 name={focused ? "musical-notes" : "musical-notes-outline"}

@@ -63,7 +63,7 @@ const SignUp = () => {
       console.log("An error occured with creating the user");
       return;
     }
-    router.replace("/Playlists");
+    router.replace("/playlist");
   });
 
   return (
