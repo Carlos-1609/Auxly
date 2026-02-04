@@ -200,7 +200,7 @@ const SignIn = () => {
             <Text className="text-text-primary/60">
               Don’t have an account?{" "}
             </Text>
-            <TouchableOpacity onPress={() => router.push("/auth/SignUp")}>
+            <TouchableOpacity onPress={() => router.replace("/auth/SignUp")}>
               <Text className="text-gold font-semibold">Sign Up</Text>
             </TouchableOpacity>
           </View>

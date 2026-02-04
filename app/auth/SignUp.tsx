@@ -146,7 +146,7 @@ const SignUp = () => {
             </TouchableOpacity>
             <TouchableOpacity
               className="items-end"
-              onPress={() => router.push("/auth/SignIn")}
+              onPress={() => router.replace("/auth/SignIn")}
             >
               <Text className="text-gold font-semibold">
                 Already Have An Account?

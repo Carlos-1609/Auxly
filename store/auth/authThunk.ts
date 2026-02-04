@@ -75,7 +75,7 @@ export const startUserSignin = (email: string, password: string) => {
   return async (dispatch: AppDispatch, getState: () => RootState) => {
     try {
       dispatch(setIsLoading(true));
-      // const user = await userSignInFirebase(email, password);
+      //const user = await userSignInFirebase(email, password);
       const user = await userSignInFirebase(
         "carlosord1609@gmail.com",
         "Honduras_16",
