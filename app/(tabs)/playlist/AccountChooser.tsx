@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 const AccountChooser = () => {
   const [providers, setProviders] = useState({
@@ -23,10 +24,10 @@ const AccountChooser = () => {
   const router = useRouter();
   const { userAccounts } = useAppSelector((state) => state.auth);
   const [connected, setConnected] = useState(false);
-  const [nextEnable, setNextEnable] = useState<boolean>(false);
+  const [nextEnable, setNextEnable] = useState<boolean>(true);
 
-  const onSelectedHandler = () => {
-    setNextEnable(true);
+  const onSelectedHandler = (state: boolean) => {
+    setNextEnable(state);
   };
   return (
     <SafeAreaView className="bg-bg-base flex-1 ">
@@ -41,12 +42,12 @@ const AccountChooser = () => {
           </Text>
         </Pressable>
         <Pressable
+          disabled={nextEnable}
           onPress={() => router.push("/playlist/AddAccounts")}
           className="mx-4"
         >
           <Text
-            disabled={nextEnable}
-            className={`${nextEnable ? "text-success" : "text-success/30"} font-bold text-[17px]`}
+            className={`${!nextEnable ? "text-success" : "text-success/30"} font-bold text-[17px]`}
           >
             Next
           </Text>
@@ -62,26 +63,44 @@ const AccountChooser = () => {
         </Text>
         <TouchableOpacity
           onPress={() => {
-            setProviders((prev) => ({
-              ...prev,
-              apple: {
-                ...prev.apple,
-                active: false,
-              },
-              spotify: {
-                ...prev.spotify,
-                active: !prev.spotify.active,
-              },
-              youtube: {
-                ...prev.youtube,
-                active: false,
-              },
-              amazon: {
-                ...prev.amazon,
-                active: false,
-              },
-            }));
-            onSelectedHandler();
+            if (!userAccounts.spotifyTokens?.spotifyUserID) {
+              Toast.show({
+                type: "error",
+                text1: "Spotify not connected",
+                text2: "Link your Spotify account to continue",
+              });
+              console.log("Spotify Not Connected");
+              return;
+            } else {
+              let stateNext: boolean;
+              if (providers.spotify.active) {
+                // disable the next button
+                stateNext = true;
+              } else {
+                // enable the next button
+                stateNext = false;
+              }
+              setProviders((prev) => ({
+                ...prev,
+                apple: {
+                  ...prev.apple,
+                  active: false,
+                },
+                spotify: {
+                  ...prev.spotify,
+                  active: !prev.spotify.active,
+                },
+                youtube: {
+                  ...prev.youtube,
+                  active: false,
+                },
+                amazon: {
+                  ...prev.amazon,
+                  active: false,
+                },
+              }));
+              onSelectedHandler(stateNext);
+            }
           }}
           className={`bg-bg-card m-5 p-3 rounded-lg ${providers.spotify.active ? "border-2 border-lime-300" : ""}`}
         >
@@ -113,27 +132,43 @@ const AccountChooser = () => {
         <TouchableOpacity
           className={`bg-bg-card m-5 p-3 rounded-lg ${providers.apple.active ? "border-2 border-lime-300" : ""}`}
           onPress={() => {
-            setProviders((prev) => ({
-              ...prev,
-              apple: {
-                ...prev.apple,
-                active: !prev.apple.active,
-              },
-              spotify: {
-                ...prev.spotify,
-                active: false,
-              },
-              youtube: {
-                ...prev.youtube,
-                active: false,
-              },
-              amazon: {
-                ...prev.amazon,
-                active: false,
-              },
-            }));
+            if (!userAccounts.appleTokens?.appleAccessToken) {
+              Toast.show({
+                type: "error",
+                text1: "Apple Music not connected",
+                text2: "Link your Apple Music account to continue",
+              });
+              console.log("Not Connected");
+              return;
+            } else {
+              let stateNext: boolean;
+              if (providers.apple.active) {
+                stateNext = true;
+              } else {
+                stateNext = false;
+              }
+              setProviders((prev) => ({
+                ...prev,
+                apple: {
+                  ...prev.apple,
+                  active: !prev.apple.active,
+                },
+                spotify: {
+                  ...prev.spotify,
+                  active: false,
+                },
+                youtube: {
+                  ...prev.youtube,
+                  active: false,
+                },
+                amazon: {
+                  ...prev.amazon,
+                  active: false,
+                },
+              }));
 
-            onSelectedHandler();
+              onSelectedHandler(stateNext);
+            }
           }}
         >
           <View className="flex flex-row items-center justify-between">
@@ -152,26 +187,42 @@ const AccountChooser = () => {
         <TouchableOpacity
           className={`bg-bg-card m-5 p-3 rounded-lg ${providers.youtube.active ? "border-2 border-lime-300" : ""}`}
           onPress={() => {
-            setProviders((prev) => ({
-              ...prev,
-              apple: {
-                ...prev.apple,
-                active: false,
-              },
-              spotify: {
-                ...prev.spotify,
-                active: false,
-              },
-              youtube: {
-                ...prev.youtube,
-                active: !prev.youtube.active,
-              },
-              amazon: {
-                ...prev.amazon,
-                active: false,
-              },
-            }));
-            onSelectedHandler();
+            if (!userAccounts.youtubeTokens?.youtubeAccessToken) {
+              Toast.show({
+                type: "error",
+                text1: "Youtube Music not connected",
+                text2: "Link your Youtube Music account to continue",
+              });
+              console.log("Youtube Not Connected");
+              return;
+            } else {
+              let stateNext: boolean;
+              if (providers.apple.active) {
+                stateNext = true;
+              } else {
+                stateNext = false;
+              }
+              setProviders((prev) => ({
+                ...prev,
+                apple: {
+                  ...prev.apple,
+                  active: false,
+                },
+                spotify: {
+                  ...prev.spotify,
+                  active: false,
+                },
+                youtube: {
+                  ...prev.youtube,
+                  active: !prev.youtube.active,
+                },
+                amazon: {
+                  ...prev.amazon,
+                  active: false,
+                },
+              }));
+              onSelectedHandler(stateNext);
+            }
           }}
         >
           <View className="flex flex-row items-center justify-between">
@@ -191,26 +242,42 @@ const AccountChooser = () => {
         <TouchableOpacity
           className={`bg-bg-card m-5 p-3 rounded-lg ${providers.amazon.active ? "border-2 border-lime-300" : ""}`}
           onPress={() => {
-            setProviders((prev) => ({
-              ...prev,
-              apple: {
-                ...prev.apple,
-                active: false,
-              },
-              spotify: {
-                ...prev.spotify,
-                active: false,
-              },
-              youtube: {
-                ...prev.youtube,
-                active: false,
-              },
-              amazon: {
-                ...prev.amazon,
-                active: !prev.amazon.active,
-              },
-            }));
-            onSelectedHandler();
+            if (!userAccounts.amazonTokens?.amazonAccessToken) {
+              Toast.show({
+                type: "error",
+                text1: "Amazon Music not connected",
+                text2: "Link your Amazon Music account to continue",
+              });
+              console.log("Amazon Not Connected");
+              return;
+            } else {
+              let stateNext: boolean;
+              if (providers.apple.active) {
+                stateNext = true;
+              } else {
+                stateNext = false;
+              }
+              setProviders((prev) => ({
+                ...prev,
+                apple: {
+                  ...prev.apple,
+                  active: false,
+                },
+                spotify: {
+                  ...prev.spotify,
+                  active: false,
+                },
+                youtube: {
+                  ...prev.youtube,
+                  active: false,
+                },
+                amazon: {
+                  ...prev.amazon,
+                  active: !prev.amazon.active,
+                },
+              }));
+              onSelectedHandler(stateNext);
+            }
           }}
         >
           <View className="flex flex-row items-center justify-between">

@@ -11,6 +11,7 @@ const AddAccounts = () => {
   const router = useRouter();
   const [nextEnable, setNextEnable] = useState<boolean>(false);
   const [showMusicAccounts, setShowMusicAccounts] = useState<boolean>(false);
+  const [showDialog, setShowDialog] = useState<boolean>(false);
   const insets = useSafeAreaInsets();
 
   const accountData = [
@@ -22,6 +23,10 @@ const AddAccounts = () => {
 
   const addSecondaryAccountHandler = () => {
     setShowMusicAccounts(true);
+  };
+
+  const removeAccountHandler = () => {
+    setShowDialog(true);
   };
 
   return (
@@ -38,10 +43,10 @@ const AddAccounts = () => {
         <Pressable
           onPress={() => router.push("/playlist/CreatePlaylist")}
           className="mx-4"
+          disabled={accountData.length <= 0}
         >
           <Text
-            disabled={accountData.length > 0}
-            className={`${accountData.length > 0 ? "text-success" : "text-success/30"} font-bold text-[17px]`}
+            className={`${accountData.length <= 0 ? "text-success/30" : "text-success"} font-bold text-[17px]`}
           >
             Next
           </Text>
@@ -89,10 +94,7 @@ const AddAccounts = () => {
                 </View>
 
                 {/* Delete Action */}
-                <Pressable
-                  hitSlop={10}
-                  //onPress={() => handleRemoveAccount(item.id)}
-                >
+                <Pressable hitSlop={10} onPress={() => removeAccountHandler()}>
                   <FontAwesome5 name="trash-alt" size={18} color="#EF4444" />
                 </Pressable>
               </View>
@@ -251,6 +253,46 @@ const AddAccounts = () => {
                 </Text>
               </Pressable>
             </View>
+          </View>
+        </View>
+      ) : null}
+      {showDialog ? (
+        <View className="absolute inset-0 justify-center items-center bg-black/50">
+          <View className="bg-bg-card rounded-2xl w-[280px] overflow-hidden">
+            {/* Title */}
+            <View className="px-6 pt-8 pb-6">
+              <Text className="text-text-primary text-center text-[16px] leading-5 font-bold">
+                Do you want to remove this account?
+              </Text>
+            </View>
+
+            {/* Divider */}
+            <View className="h-[0.5px] bg-gray-700" />
+
+            {/* Remove button */}
+            <Pressable
+              //onPress={handleAccountDisconnect}
+              className="py-3.5"
+              android_ripple={{ color: "rgba(255, 107, 107, 0.15)" }}
+            >
+              <Text className="text-error text-center text-[15px] font-bold">
+                Remove
+              </Text>
+            </Pressable>
+
+            {/* Divider */}
+            <View className="h-[0.5px] bg-gray-700" />
+
+            {/* Cancel button */}
+            <Pressable
+              onPress={() => setShowDialog(false)}
+              className="py-3.5"
+              android_ripple={{ color: "rgba(255, 255, 255, 0.1)" }}
+            >
+              <Text className="text-text-primary text-center text-[15px] font-bold">
+                Cancel
+              </Text>
+            </Pressable>
           </View>
         </View>
       ) : null}

@@ -35,6 +35,7 @@ const CustomTabBar = ({
               canPreventDefault: true,
             });
 
+            //Prevent renavigating to the current tab
             if (!isFocused && !event.defaultPrevented) {
               navigation.navigate(route.name);
             }

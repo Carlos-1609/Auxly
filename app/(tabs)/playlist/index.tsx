@@ -37,7 +37,6 @@ const Playlists = () => {
           },
         },
       );
-      console.log("ANTES DE LAS TRACKS");
       const tracks = await response.json();
       console.log("This are the spotify tracks: ", tracks.items);
       const trackList = tracks.items.map((trackInfo: any, index: number) => {

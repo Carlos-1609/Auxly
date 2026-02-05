@@ -1,13 +1,17 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 type playlistState = {
-  tracks: Array<string>;
   profiles: [{}];
+  primaryProfile: {};
+  playlistName: string;
+  playlistID: string;
 };
 
 const initialState: playlistState = {
-  tracks: [],
   profiles: [{}],
+  primaryProfile: {},
+  playlistName: "",
+  playlistID: "",
 };
 
 const playlistSlice = createSlice({
