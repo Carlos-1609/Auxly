@@ -6,12 +6,12 @@ import { Redirect } from "expo-router";
 export default function Index() {
   const { status, isLoggedIn } = useCheckAuth();
 
-  // ⏳ Still checking Firebase session
+  // Still checking Firebase session
   if (status === "checking") {
     return <LoadingOverlay visible={true} message="Checking your session..." />;
   }
 
-  // ✅ Already authenticated → go to playlists
+  // Already authenticated → go to playlists
   if (isLoggedIn) {
     return <Redirect href="/playlist" />;
   }
