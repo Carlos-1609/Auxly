@@ -16,6 +16,6 @@ export default function Index() {
     return <Redirect href="/playlist" />;
   }
 
-  // ❌ No session → go to auth flow
+  // No session → go to auth flow
   return <Redirect href="/auth" />;
 }
