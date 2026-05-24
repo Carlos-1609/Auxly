@@ -5,6 +5,7 @@ import { Redirect } from "expo-router";
 
 export default function Index() {
   const { status, isLoggedIn } = useCheckAuth();
+  //
 
   // Still checking Firebase session
   if (status === "checking") {
