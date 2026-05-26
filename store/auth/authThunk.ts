@@ -1,155 +1,125 @@
+import { mapAuthError } from "@/firebase/authErrors";
 import { FirebaseDB } from "@/firebase/firebaseConfig";
 import { userSignInFirebase, userSignUpFirebase } from "@/firebase/providers";
-import { UserAccounts } from "@/types/auth";
+import {
+  EMPTY_USER_ACCOUNTS,
+  normalizeUserAccounts,
+  SignupData,
+  ThunkResult,
+  UserAccounts,
+} from "@/types/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import * as Linking from "expo-linking";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-
-import { AppDispatch, RootState } from "../store";
-import { setIsLoading, setUser, setUserAccounts } from "./authSlice";
+import { doc, getDoc } from "firebase/firestore";
+import { setPlaylistLoading } from "../playlists/playlistSlice";
+import { AppDispatch } from "../store";
+import { setIsLoading, setUser } from "./authSlice";
 
 export const generateRandomString = async (length: number) => {
   const possible =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-  // Get random bytes
   const randomBytes = await Crypto.getRandomBytesAsync(length);
-
   let text = "";
   for (let i = 0; i < randomBytes.length; i++) {
     text += possible[randomBytes[i] % possible.length];
   }
-
   return text;
 };
 
-export const getCodeVerifier = async () => {
-  const code = await generateRandomString(64);
-  return code;
-};
+export const getCodeVerifier = async () => generateRandomString(64);
 
 export const getChallengeFromVerifier = async (verifier: string) => {
   const base64 = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
     verifier,
-    { encoding: Crypto.CryptoEncoding.BASE64 },
+    { encoding: Crypto.CryptoEncoding.BASE64 }
   );
-
-  const base64url = base64
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-
-  return base64url;
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
 
-export const startUserSignUp = (data: any) => {
-  return async (dispatch: AppDispatch, getState: () => RootState) => {
+export const startUserSignUp = (data: SignupData) => {
+  return async (dispatch: AppDispatch): Promise<ThunkResult> => {
+    dispatch(setIsLoading(true));
     try {
-      console.log("Inside the dispatch");
-      dispatch(setIsLoading(true));
       const user = await userSignUpFirebase(data);
-      if (!user?.uid) {
-        dispatch(setIsLoading(false));
-        return false;
-      }
       dispatch(
         setUser({
           uid: user.uid,
           email: user.email ?? "",
           displayName: user.displayName ?? "",
-          userAccounts: {},
-        }),
+          userAccounts: EMPTY_USER_ACCOUNTS,
+        })
       );
-      dispatch(setIsLoading(false));
-      return true;
+      return { ok: true };
     } catch (error) {
-      console.error(error);
-      return false;
+      console.error("[startUserSignUp]", error);
+      return { ok: false, errorMessage: mapAuthError(error) };
+    } finally {
+      dispatch(setIsLoading(false));
     }
   };
 };
 
 export const startUserSignin = (email: string, password: string) => {
-  return async (dispatch: AppDispatch, getState: () => RootState) => {
+  return async (dispatch: AppDispatch): Promise<ThunkResult> => {
+    dispatch(setIsLoading(true));
     try {
-      dispatch(setIsLoading(true));
-      //const user = await userSignInFirebase(email, password);
-      const user = await userSignInFirebase(
-        "carlosord1609@gmail.com",
-        "Honduras_16",
-      );
-      if (!user?.uid) {
-        dispatch(setIsLoading(false));
-        return false;
-      }
-      const userAccounts: UserAccounts = await getUserAccountTokens(user.uid);
+      const user = await userSignInFirebase(email, password);
+      const userAccounts = await getUserAccountTokens(user.uid);
       dispatch(
         setUser({
           uid: user.uid,
           displayName: user.displayName ?? "",
           email: user.email ?? "",
-          userAccounts: userAccounts,
-        }),
+          userAccounts,
+        })
       );
-      console.log(JSON.stringify({ user, userAccounts }, null, 2));
-      return {
-        ok: true,
-      };
+      return { ok: true };
     } catch (error) {
-      console.log("Inside the thunk");
-      console.error("This was the sign in error: /n", error);
+      console.error("[startUserSignin]", error);
+      return { ok: false, errorMessage: mapAuthError(error) };
+    } finally {
       dispatch(setIsLoading(false));
-      return false;
     }
   };
 };
 
-export const getUserAccountTokens = async (id: string) => {
+export const getUserAccountTokens = async (
+  id: string
+): Promise<UserAccounts> => {
   try {
-    const docRef = doc(FirebaseDB, "userAccounts", id);
-    const query = await getDoc(docRef);
-    let userAccounts: UserAccounts;
-    if (query.exists()) {
-      //console.log("Si existe");
-      userAccounts = query.data();
-      return userAccounts;
-    } else {
-      //console.log("No existe");
-      userAccounts = {};
-      return userAccounts;
-    }
+    const snap = await getDoc(doc(FirebaseDB, "userAccounts", id));
+    return normalizeUserAccounts(snap.exists() ? snap.data() : null);
   } catch (error) {
-    console.log(error);
-    return {};
+    console.error("[getUserAccountTokens]", error);
+    return EMPTY_USER_ACCOUNTS;
   }
 };
 
-export const connectSpotifyAccount = (primary: string) => {
-  return async (dispatch: AppDispatch, getState: () => RootState) => {
+// Kicks off Spotify OAuth (PKCE). The callback at app/auth/callback.tsx
+// reads spotify_primary from AsyncStorage and dispatches linkSpotifyAccount.
+export const connectSpotifyAccount = (primary: "0" | "1") => {
+  return async (dispatch: AppDispatch): Promise<ThunkResult> => {
+    dispatch(setPlaylistLoading(true));
     try {
-      dispatch(setIsLoading(true));
-
       const verifier = await getCodeVerifier();
       const challenge = await getChallengeFromVerifier(verifier);
       const redirectUri = Linking.createURL("auth/callback");
       const state = await generateRandomString(16);
-      let scope;
+
+      const scope =
+        primary === "1"
+          ? "user-read-recently-played playlist-modify-private playlist-modify-public user-top-read user-read-private user-read-email"
+          : "user-top-read user-read-private";
 
       await AsyncStorage.multiSet([
         ["spotify_auth_in_progress", "1"],
         ["spotify_code_verifier", verifier],
         ["spotify_auth_state", state],
         ["spotify_primary", primary],
+        ["spotify_scope", scope],
       ]);
-
-      if (primary === "1") {
-        scope =
-          "user-read-recently-played playlist-modify-private playlist-modify-public user-top-read user-read-private user-read-email";
-      } else {
-        scope = "user-top-read";
-      }
 
       const params = {
         response_type: "code",
@@ -161,48 +131,22 @@ export const connectSpotifyAccount = (primary: string) => {
         state,
       };
 
-      const query = new URLSearchParams(params).toString();
-      const authUrl = `https://accounts.spotify.com/authorize?${query}`;
+      const authUrl = `https://accounts.spotify.com/authorize?${new URLSearchParams(
+        params
+      ).toString()}`;
 
+      console.log("[Spotify OAuth] redirectUri =", redirectUri);
       await Linking.openURL(authUrl);
 
       return { ok: true };
     } catch (error: any) {
-      console.log(error);
-      return { ok: false, errorMessage: error.message };
-    } finally {
-      dispatch(setIsLoading(false));
-    }
-  };
-};
-
-export const disconnectSpotifyAccount = () => {
-  return async (dispatch: AppDispatch, getState: () => RootState) => {
-    try {
-      dispatch(setIsLoading(true));
-      const uid = getState().auth.uid;
-      if (!uid) throw new Error("Missing user uid");
-      const docRef = doc(FirebaseDB, "userAccounts", uid);
-      const updateData = {
-        "spotifyTokens.spotifyAccessToken": "",
-        "spotifyTokens.spotifyTokenExpiresAt": 0,
-        "spotifyTokens.spotifyRefreshToken": "",
-        "spotifyTokens.spotifyUserID": "",
-      };
-      await updateDoc(docRef, updateData);
-      const userAccount = await getUserAccountTokens(uid);
-      dispatch(setUserAccounts(userAccount));
-      return {
-        ok: true,
-      };
-    } catch (error: any) {
-      console.log(error);
+      console.error("[connectSpotifyAccount]", error);
       return {
         ok: false,
-        errorMessage: error.message,
+        errorMessage: error.message ?? "Could not start Spotify auth",
       };
     } finally {
-      dispatch(setIsLoading(false)); // Stop loading regardless of success/failure
+      dispatch(setPlaylistLoading(false));
     }
   };
 };

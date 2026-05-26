@@ -1,5 +1,6 @@
 import EmailModal from "@/components/EmailModal";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
+import { mapAuthError } from "@/firebase/authErrors";
 import { userPasswordResetFirebase } from "@/firebase/providers";
 import { startUserSignin } from "@/store/auth/authThunk";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -33,12 +34,12 @@ const SignIn = () => {
   const router = useRouter();
 
   const onSignIN = async () => {
-    const ok = await dispatch(startUserSignin(userEmail, userPassword));
-    if (!ok) {
+    const result = await dispatch(startUserSignin(userEmail, userPassword));
+    if (!result.ok) {
       Toast.show({
         type: "error",
         text1: "Error while signing in",
-        text2: "An error ocurred, please try again!",
+        text2: result.errorMessage,
       });
       return;
     }
@@ -46,22 +47,20 @@ const SignIn = () => {
   };
 
   const onUserPasswordReset = async (email: string) => {
-    const res = await userPasswordResetFirebase(email);
-    if (!res.ok) {
-      console.log("Something went wrong");
-      console.log(res.errorMessage);
+    try {
+      await userPasswordResetFirebase(email);
+      Toast.show({
+        type: "success",
+        text1: "Reset email sent",
+        text2: "Please check your email for a password reset link!",
+      });
+    } catch (error) {
       Toast.show({
         type: "error",
         text1: "Reset email not sent",
-        text2: "An error ocurred, please try again!",
+        text2: mapAuthError(error),
       });
     }
-    Toast.show({
-      type: "success",
-      text1: "Reset email sent",
-      text2: "Please check your email, for a password reset link!",
-    });
-    // console.log(res.response);
   };
 
   const onChangeHandlerEmail = (e: string) => {

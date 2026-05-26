@@ -1,11 +1,11 @@
-import { UserAccounts, UserState } from "@/types/auth";
+import { EMPTY_USER_ACCOUNTS, UserAccounts, UserState } from "@/types/auth";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 const initialState: UserState = {
   uid: "",
   email: "",
   displayName: "",
-  userAccounts: {},
+  userAccounts: EMPTY_USER_ACCOUNTS,
   status: "checking",
   isLoggedIn: false,
   isLoading: false,
@@ -52,7 +52,7 @@ const authSlice = createSlice({
       state.displayName = "";
       state.email = "";
       state.status = "unauthenticated";
-      state.userAccounts = {};
+      state.userAccounts = EMPTY_USER_ACCOUNTS;
       state.isLoggedIn = false;
       state.isLoading = false;
     },

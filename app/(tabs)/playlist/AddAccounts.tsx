@@ -1,121 +1,184 @@
-import { FontAwesome5 } from "@expo/vector-icons";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { connectSpotifyAccount } from "@/store/auth/authThunk";
+import {
+  setContributingAccounts,
+  toggleContributingAccount,
+} from "@/store/playlists/playlistSlice";
+import { disconnectSpotifyAccount } from "@/store/playlists/playlistThunk";
+import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+type AccountRow = {
+  id: string;
+  displayName: string;
+  isPrimary: boolean;
+};
+
 const AddAccounts = () => {
   const router = useRouter();
-  const [nextEnable, setNextEnable] = useState<boolean>(false);
-  const [showMusicAccounts, setShowMusicAccounts] = useState<boolean>(false);
-  const [showDialog, setShowDialog] = useState<boolean>(false);
+  const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
 
-  const accountData = [
-    { id: "1", name: "Alejandra Lopez", type: "spotify" },
-    { id: "2", name: "Spike", type: "youtube" },
-    { id: "3", name: "Travis", type: "apple" },
-    { id: "4", name: "Chispitas", type: "amazon" },
-  ];
+  const spotify = useAppSelector((s) => s.auth.userAccounts.spotify);
+  const contributingIds = useAppSelector(
+    (s) => s.playlist.draft.contributingAccountIds
+  );
 
-  const addSecondaryAccountHandler = () => {
-    setShowMusicAccounts(true);
+  const [showMusicAccounts, setShowMusicAccounts] = useState(false);
+  const [pendingDisconnectId, setPendingDisconnectId] = useState<string | null>(
+    null
+  );
+
+  // Sorted list: primary first, then secondaries by display name.
+  const accounts: AccountRow[] = useMemo(() => {
+    return Object.entries(spotify.accounts)
+      .map(([id, acc]) => ({
+        id,
+        displayName: acc.displayName,
+        isPrimary: id === spotify.primaryId,
+      }))
+      .sort((a, b) => {
+        if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+        return a.displayName.localeCompare(b.displayName);
+      });
+  }, [spotify.accounts, spotify.primaryId]);
+
+  // Seed contributors with [primaryId] on first mount so the user doesn't
+  // have to remember to include their own account.
+  useEffect(() => {
+    if (contributingIds.length === 0 && spotify.primaryId) {
+      dispatch(setContributingAccounts([spotify.primaryId]));
+    }
+    // We only want this on mount-when-empty. Once the user has interacted,
+    // their selection is the source of truth.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const nextDisabled = contributingIds.length === 0;
+
+  const handleAddSecondary = async () => {
+    setShowMusicAccounts(false);
+    await dispatch(connectSpotifyAccount("0"));
+    // Linking.openURL inside the thunk hands control to the browser;
+    // the callback screen handles the rest.
   };
 
-  const removeAccountHandler = () => {
-    setShowDialog(true);
+  const handleConfirmDisconnect = async () => {
+    if (!pendingDisconnectId) return;
+    await dispatch(disconnectSpotifyAccount(pendingDisconnectId));
+    setPendingDisconnectId(null);
   };
 
   return (
     <SafeAreaView className="bg-bg-base flex-1">
       <View className="flex-row justify-between mt-2 mb-2">
-        <Pressable className="mx-4">
-          <Text
-            onPress={() => router.back()}
-            className="text-error font-bold text-[17px]"
-          >
-            Back
-          </Text>
+        <Pressable className="mx-4" onPress={() => router.back()}>
+          <Text className="text-error font-bold text-[17px]">Back</Text>
         </Pressable>
         <Pressable
           onPress={() => router.push("/playlist/CreatePlaylist")}
           className="mx-4"
-          disabled={accountData.length <= 0}
+          disabled={nextDisabled}
         >
           <Text
-            className={`${accountData.length <= 0 ? "text-success/30" : "text-success"} font-bold text-[17px]`}
+            className={`${nextDisabled ? "text-success/30" : "text-success"} font-bold text-[17px]`}
           >
             Next
           </Text>
         </Pressable>
       </View>
-      {accountData.length !== 0 ? (
+
+      <View className="mx-5 mt-2 mb-4">
+        <Text className="text-text-primary text-xl font-bold">
+          Pick contributors
+        </Text>
+        <Text className="text-text-muted mt-1">
+          Their top tracks will be merged into your playlist.
+        </Text>
+      </View>
+
+      {accounts.length > 0 ? (
         <FlatList
-          className="pt-10"
-          data={accountData}
+          data={accounts}
           keyExtractor={(item) => item.id}
-          ItemSeparatorComponent={() => <View className="h-7"></View>}
-          renderItem={({ item, index }) => (
-            <View
-              className="bg-bg-card rounded-xl p-4 mx-5"
-              style={{
-                shadowColor: "#000000",
-                shadowOpacity: 0.25,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 4 },
-              }}
-            >
-              <View className="flex-row items-center gap-x-4">
-                {/* Provider Icon #FA2D48  #FF9900 #FF0000*/}
+          ItemSeparatorComponent={() => <View className="h-3" />}
+          renderItem={({ item }) => {
+            const included = contributingIds.includes(item.id);
+            return (
+              <Pressable
+                onPress={() => dispatch(toggleContributingAccount(item.id))}
+                className={`bg-bg-card rounded-xl p-4 mx-5 ${
+                  included ? "border-2 border-success" : "border-2 border-transparent"
+                }`}
+                style={{
+                  shadowColor: "#000000",
+                  shadowOpacity: 0.25,
+                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 4 },
+                }}
+              >
+                <View className="flex-row items-center gap-x-4">
+                  <FontAwesome5 name="spotify" size={30} color="#1DB954" />
+                  <View className="flex-1">
+                    <View className="flex-row items-center gap-x-2">
+                      <Text className="text-text-primary font-medium">
+                        {item.displayName}
+                      </Text>
+                      {item.isPrimary ? (
+                        <View className="bg-gold/20 px-2 py-0.5 rounded">
+                          <Text className="text-gold text-xs font-bold">
+                            PRIMARY
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text className="text-text-muted text-sm">
+                      {included ? "Included" : "Tap to include"}
+                    </Text>
+                  </View>
 
-                <FontAwesome5
-                  name={item.type}
-                  size={item.type === "apple" ? 34 : 30}
-                  color={
-                    item.type === "spotify"
-                      ? "#1DB954"
-                      : item.type === "apple"
-                        ? "#fff"
-                        : item.type === "youtube"
-                          ? "#FF0000"
-                          : "#FF9900"
-                  }
-                />
+                  <Ionicons
+                    name={included ? "checkmark-circle" : "ellipse-outline"}
+                    size={24}
+                    color={included ? "#72E0A8" : "#8A8A8A"}
+                  />
 
-                {/* Text Content */}
-                <View className="flex-1">
-                  <Text className="text-text-primary font-medium">
-                    {item.name}
-                  </Text>
-                  <Text className="text-text-muted text-sm">Connected</Text>
+                  {!item.isPrimary ? (
+                    <Pressable
+                      hitSlop={10}
+                      onPress={() => setPendingDisconnectId(item.id)}
+                    >
+                      <FontAwesome5 name="trash-alt" size={18} color="#EF4444" />
+                    </Pressable>
+                  ) : null}
                 </View>
-
-                {/* Delete Action */}
-                <Pressable hitSlop={10} onPress={() => removeAccountHandler()}>
-                  <FontAwesome5 name="trash-alt" size={18} color="#EF4444" />
-                </Pressable>
-              </View>
-            </View>
-          )}
-        ></FlatList>
+              </Pressable>
+            );
+          }}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 120 }}
+        />
       ) : (
-        <View className="flex-1 justify-center items-center ">
+        <View className="flex-1 justify-center items-center px-8">
           <Text className="text-text-primary text-lg text-center">
-            Add secondary accounts
+            No Spotify accounts linked yet
           </Text>
-          <Text className="text-text-muted">
-            Link other accounts to add their songs to this playlist.
+          <Text className="text-text-muted text-center mt-1">
+            Link a primary account from the Profile tab first.
           </Text>
         </View>
       )}
+
       <Pressable
-        onPress={addSecondaryAccountHandler}
+        onPress={() => setShowMusicAccounts(true)}
         className="h-[58px] w-[58px] rounded-full items-center justify-center absolute right-6 bg-gold"
         style={{
-          bottom: insets.bottom + 5, // above tab bar, content scrolls under
+          bottom: insets.bottom + 5,
           shadowColor: "#FF9671",
           shadowOffset: { width: 0, height: 6 },
           shadowOpacity: 0.5,
@@ -124,154 +187,90 @@ const AddAccounts = () => {
         }}
         android_ripple={{ color: "rgba(255,255,255,0.18)", borderless: true }}
         accessibilityRole="button"
-        accessibilityLabel="Create new playlist"
+        accessibilityLabel="Add another account"
       >
         <FontAwesome5 name="plus" size={22} color="#111" />
       </Pressable>
+
       {showMusicAccounts ? (
         <View className="absolute inset-0 items-center justify-center">
-          {/* Backdrop (tap outside to close) */}
           <Pressable
             onPress={() => setShowMusicAccounts(false)}
             className="absolute inset-0 bg-black/50"
-            style={({ pressed }) => [{ opacity: pressed ? 0.55 : 1 }]}
           />
 
-          {/* Card */}
           <View className="bg-bg-card w-[320px] rounded-2xl px-4 pt-4 pb-5">
-            {/* Header row */}
             <View className="flex-row items-center justify-between">
               <Text className="text-text-primary text-lg font-bold">
-                Choose a provider
+                Add a contributor
               </Text>
-
-              {/* Close button */}
               <Pressable
                 onPress={() => setShowMusicAccounts(false)}
                 hitSlop={12}
                 className="h-9 w-9 items-center justify-center rounded-full bg-white/10 border border-warning"
-                style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-                accessibilityRole="button"
-                accessibilityLabel="Close provider picker"
               >
-                <Text className="text-warning text-xl ">×</Text>
+                <Text className="text-warning text-xl">×</Text>
               </Pressable>
             </View>
 
-            {/* Optional helper text */}
             <Text className="text-text-secondary mt-1 text-sm">
-              This will open the provider to connect your account.
+              They'll sign into their account and we'll pull their top tracks.
             </Text>
 
-            {/* Buttons */}
             <View className="mt-4 gap-y-4">
               <Pressable
-                onPress={() => setShowMusicAccounts(false)}
+                onPress={handleAddSecondary}
                 className="rounded-xl bg-[#1DB954] px-4 py-3 flex-row items-center justify-center gap-x-2"
-                style={({ pressed }) => [
-                  {
-                    transform: [{ scale: pressed ? 0.98 : 1 }],
-                    opacity: pressed ? 0.92 : 1,
-                    shadowColor: "#1DB954",
-                    shadowOpacity: 0.35,
-                    shadowRadius: 10,
-                    elevation: 8,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Connect Spotify"
               >
                 <FontAwesome5 name="spotify" size={26} color="black" />
-                <Text className="text-text-black text-[16px] font-bold">
-                  Spotify
-                </Text>
+                <Text className="text-black text-[16px] font-bold">Spotify</Text>
               </Pressable>
 
               <Pressable
-                onPress={() => setShowMusicAccounts(false)}
-                className="rounded-xl bg-[#FA2D48] px-4 py-3 flex-row items-center justify-center gap-x-2"
-                style={({ pressed }) => [
-                  {
-                    transform: [{ scale: pressed ? 0.98 : 1 }],
-                    opacity: pressed ? 0.92 : 1,
-                    shadowColor: "#FA2D48",
-                    shadowOpacity: 0.35,
-                    shadowRadius: 10,
-                    elevation: 8,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Connect Apple Music"
+                disabled
+                className="rounded-xl bg-[#FA2D48]/40 px-4 py-3 flex-row items-center justify-center gap-x-2"
               >
                 <FontAwesome5 name="apple" size={28} color="white" />
                 <Text className="text-white text-[16px] font-bold mt-1">
-                  Apple
+                  Apple (soon)
                 </Text>
               </Pressable>
 
               <Pressable
-                onPress={() => setShowMusicAccounts(false)}
-                className="rounded-xl bg-[#FF9900] px-4 py-3 flex-row items-center justify-center gap-x-2"
-                style={({ pressed }) => [
-                  {
-                    transform: [{ scale: pressed ? 0.98 : 1 }],
-                    opacity: pressed ? 0.92 : 1,
-                    shadowColor: "#FF9900",
-                    shadowOpacity: 0.3,
-                    shadowRadius: 10,
-                    elevation: 8,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Connect Amazon Music"
+                disabled
+                className="rounded-xl bg-[#FF9900]/40 px-4 py-3 flex-row items-center justify-center gap-x-2"
               >
                 <FontAwesome5 name="amazon" size={26} color="black" />
-                <Text className="text-text-black text-[16px] font-bold">
-                  Amazon
+                <Text className="text-black text-[16px] font-bold">
+                  Amazon (soon)
                 </Text>
               </Pressable>
 
               <Pressable
-                onPress={() => setShowMusicAccounts(false)}
-                className="rounded-xl bg-[#FF0000] px-4 py-3 flex-row items-center justify-center gap-x-2"
-                style={({ pressed }) => [
-                  {
-                    transform: [{ scale: pressed ? 0.98 : 1 }],
-                    opacity: pressed ? 0.92 : 1,
-                    shadowColor: "#FF0000",
-                    shadowOpacity: 0.3,
-                    shadowRadius: 10,
-                    elevation: 8,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Connect YouTube Music"
+                disabled
+                className="rounded-xl bg-[#FF0000]/40 px-4 py-3 flex-row items-center justify-center gap-x-2"
               >
                 <FontAwesome5 name="youtube" size={26} color="white" />
                 <Text className="text-white text-[16px] font-bold">
-                  YouTube
+                  YouTube (soon)
                 </Text>
               </Pressable>
             </View>
           </View>
         </View>
       ) : null}
-      {showDialog ? (
+
+      {pendingDisconnectId ? (
         <View className="absolute inset-0 justify-center items-center bg-black/50">
           <View className="bg-bg-card rounded-2xl w-[280px] overflow-hidden">
-            {/* Title */}
             <View className="px-6 pt-8 pb-6">
               <Text className="text-text-primary text-center text-[16px] leading-5 font-bold">
-                Do you want to remove this account?
+                Remove this account?
               </Text>
             </View>
-
-            {/* Divider */}
             <View className="h-[0.5px] bg-gray-700" />
-
-            {/* Remove button */}
             <Pressable
-              //onPress={handleAccountDisconnect}
+              onPress={handleConfirmDisconnect}
               className="py-3.5"
               android_ripple={{ color: "rgba(255, 107, 107, 0.15)" }}
             >
@@ -279,13 +278,9 @@ const AddAccounts = () => {
                 Remove
               </Text>
             </Pressable>
-
-            {/* Divider */}
             <View className="h-[0.5px] bg-gray-700" />
-
-            {/* Cancel button */}
             <Pressable
-              onPress={() => setShowDialog(false)}
+              onPress={() => setPendingDisconnectId(null)}
               className="py-3.5"
               android_ripple={{ color: "rgba(255, 255, 255, 0.1)" }}
             >
