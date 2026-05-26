@@ -1,4 +1,5 @@
-import { useAppSelector } from "@/store/hooks";
+import { connectSpotifyAccount } from "@/store/auth/authThunk";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { Redirect, useRouter } from "expo-router";
@@ -7,7 +8,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const PlaylistCreated = () => {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const lastCreated = useAppSelector((s) => s.playlist.lastCreated);
+  const primaryId = useAppSelector(
+    (s) => s.auth.userAccounts.spotify.primaryId
+  );
 
   // If we landed here without a created playlist (e.g. deep link, refresh), bounce home.
   if (!lastCreated) {
@@ -17,6 +22,13 @@ const PlaylistCreated = () => {
   const openInProvider = async () => {
     if (!lastCreated.externalUrl) return;
     await Linking.openURL(lastCreated.externalUrl);
+  };
+
+  const handleRelink = async (accountId: string) => {
+    const isPrimary = accountId === primaryId;
+    await dispatch(
+      connectSpotifyAccount(isPrimary ? "1" : "0", { forceShowDialog: true })
+    );
   };
 
   return (
@@ -38,14 +50,30 @@ const PlaylistCreated = () => {
 
         {lastCreated.skippedAccounts.length > 0 ? (
           <View className="w-full mt-6 p-4 rounded-xl bg-warning/10 border border-warning/30">
-            <Text className="text-warning font-bold mb-1">
+            <Text className="text-warning font-bold mb-2">
               Skipped {lastCreated.skippedAccounts.length} account
               {lastCreated.skippedAccounts.length === 1 ? "" : "s"}
             </Text>
             {lastCreated.skippedAccounts.map((s) => (
-              <Text key={s.accountId} className="text-text-secondary text-sm">
-                · {s.displayName} — {s.reason}
-              </Text>
+              <View
+                key={s.accountId}
+                className="flex-row items-center justify-between mt-1"
+              >
+                <View className="flex-1 pr-2">
+                  <Text className="text-text-primary text-sm font-medium">
+                    {s.displayName}
+                  </Text>
+                  <Text className="text-text-secondary text-xs">
+                    {s.reason}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => handleRelink(s.accountId)}
+                  className="bg-gold/20 px-3 py-1.5 rounded-md border border-gold/40"
+                >
+                  <Text className="text-gold font-bold text-xs">Re-link</Text>
+                </Pressable>
+              </View>
             ))}
           </View>
         ) : null}

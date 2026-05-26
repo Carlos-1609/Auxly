@@ -1,10 +1,19 @@
 import { CreatedPlaylist, PlaylistDraft, ProviderType } from "@/types/playlist";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+export type AccountHealth =
+  | "unknown"
+  | "checking"
+  | "healthy"
+  | "needs_reauth";
+
 type PlaylistState = {
   isLoading: boolean;
   draft: PlaylistDraft;
   lastCreated: CreatedPlaylist | null;
+  // Transient per-account health from validation probes. Keyed by Spotify userID.
+  // Not persisted — re-checked each time AddAccounts mounts.
+  accountHealth: Record<string, AccountHealth>;
 };
 
 const emptyDraft: PlaylistDraft = {
@@ -17,6 +26,7 @@ const initialState: PlaylistState = {
   isLoading: false,
   draft: emptyDraft,
   lastCreated: null,
+  accountHealth: {},
 };
 
 const playlistSlice = createSlice({
@@ -55,6 +65,20 @@ const playlistSlice = createSlice({
     ) => {
       state.lastCreated = payload;
     },
+    setAccountHealth: (
+      state,
+      {
+        payload,
+      }: PayloadAction<{ accountId: string; status: AccountHealth }>
+    ) => {
+      state.accountHealth[payload.accountId] = payload.status;
+    },
+    setManyAccountHealth: (
+      state,
+      { payload }: PayloadAction<Record<string, AccountHealth>>
+    ) => {
+      state.accountHealth = { ...state.accountHealth, ...payload };
+    },
   },
 });
 
@@ -66,5 +90,7 @@ export const {
   setContributingAccounts,
   resetDraft,
   setLastCreated,
+  setAccountHealth,
+  setManyAccountHealth,
 } = playlistSlice.actions;
 export default playlistSlice.reducer;

@@ -17,7 +17,9 @@ import { setUserAccounts } from "../auth/authSlice";
 import { AppDispatch, RootState } from "../store";
 import {
   resetDraft,
+  setAccountHealth,
   setLastCreated,
+  setManyAccountHealth,
   setPlaylistLoading,
 } from "./playlistSlice";
 
@@ -185,6 +187,66 @@ export const disconnectSpotifyAccount = (spotifyUserId: string) => {
     } finally {
       dispatch(setPlaylistLoading(false));
     }
+  };
+};
+
+// Spotify returns this error when the refresh token itself is no longer valid
+// (revoked by the user or by Spotify after long inactivity). Distinct from
+// transient errors (network, 500) because we should mark the account as
+// definitively dead, not just "couldn't reach it."
+const isInvalidGrantError = (error: unknown): boolean => {
+  const msg = (error as { message?: string })?.message ?? "";
+  return msg.includes("invalid_grant");
+};
+
+// Probe one account by FORCING a token refresh. We can't rely on the cached
+// access token + /me ping because Spotify access tokens survive grant
+// revocation until their natural 1-hour expiry — only refresh tokens are
+// checked against the grant table server-side. So the only way to know if
+// the grant is still alive is to attempt a refresh.
+export const validateAccountHealth = (accountId: string) => {
+  return async (
+    dispatch: AppDispatch,
+    getState: () => RootState
+  ): Promise<void> => {
+    dispatch(setAccountHealth({ accountId, status: "checking" }));
+    try {
+      const { uid, userAccounts } = getState().auth;
+      const account = userAccounts.spotify.accounts[accountId];
+      if (!account?.refreshToken) {
+        dispatch(setAccountHealth({ accountId, status: "needs_reauth" }));
+        return;
+      }
+      // Forced refresh — bypasses the not-expired-yet shortcut. If the
+      // refresh token has been revoked, Spotify returns invalid_grant here.
+      await performSpotifyRefresh(dispatch, uid, accountId, account.refreshToken);
+      dispatch(setAccountHealth({ accountId, status: "healthy" }));
+    } catch (error) {
+      if (isInvalidGrantError(error)) {
+        dispatch(setAccountHealth({ accountId, status: "needs_reauth" }));
+      } else {
+        // Network/transient — don't permanently mark dead. Re-check next time.
+        console.warn("[validateAccountHealth] transient", accountId, error);
+        dispatch(setAccountHealth({ accountId, status: "unknown" }));
+      }
+    }
+  };
+};
+
+// Fan out validation across every linked Spotify account in parallel. Marks
+// all as "checking" up front so the UI doesn't flash through stale healthy
+// states from a previous mount.
+export const validateAllSpotifyAccounts = () => {
+  return async (
+    dispatch: AppDispatch,
+    getState: () => RootState
+  ): Promise<void> => {
+    const ids = Object.keys(getState().auth.userAccounts.spotify.accounts);
+    if (ids.length === 0) return;
+    const checking: Record<string, "checking"> = {};
+    for (const id of ids) checking[id] = "checking";
+    dispatch(setManyAccountHealth(checking));
+    await Promise.all(ids.map((id) => dispatch(validateAccountHealth(id))));
   };
 };
 

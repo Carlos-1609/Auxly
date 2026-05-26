@@ -4,11 +4,22 @@ import {
   setContributingAccounts,
   toggleContributingAccount,
 } from "@/store/playlists/playlistSlice";
-import { disconnectSpotifyAccount } from "@/store/playlists/playlistThunk";
+import {
+  disconnectSpotifyAccount,
+  validateAllSpotifyAccounts,
+} from "@/store/playlists/playlistThunk";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  AppState,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
+} from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -29,11 +40,13 @@ const AddAccounts = () => {
   const contributingIds = useAppSelector(
     (s) => s.playlist.draft.contributingAccountIds
   );
+  const accountHealth = useAppSelector((s) => s.playlist.accountHealth);
 
   const [showMusicAccounts, setShowMusicAccounts] = useState(false);
   const [pendingDisconnectId, setPendingDisconnectId] = useState<string | null>(
     null
   );
+  const [refreshing, setRefreshing] = useState(false);
 
   // Sorted list: primary first, then secondaries by display name.
   const accounts: AccountRow[] = useMemo(() => {
@@ -60,6 +73,39 @@ const AddAccounts = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Probe every linked account each time the screen comes into focus.
+  // useFocusEffect re-fires after navigating back to AddAccounts, unlike
+  // useEffect which wouldn't run again because expo-router keeps the screen
+  // mounted.
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(validateAllSpotifyAccounts());
+    }, [dispatch])
+  );
+
+  // Also re-probe when the app returns from the background. Catches the case
+  // where the user backgrounded the simulator/app, revoked access from another
+  // device or the web, then came back.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active") {
+        dispatch(validateAllSpotifyAccounts());
+      }
+    });
+    return () => sub.remove();
+  }, [dispatch]);
+
+  // If a previously-selected contributor turns out to be dead, drop it from
+  // the selection so the Next button reflects reality.
+  useEffect(() => {
+    const stillUsable = contributingIds.filter(
+      (id) => accountHealth[id] !== "needs_reauth"
+    );
+    if (stillUsable.length !== contributingIds.length) {
+      dispatch(setContributingAccounts(stillUsable));
+    }
+  }, [accountHealth, contributingIds, dispatch]);
+
   const nextDisabled = contributingIds.length === 0;
 
   const handleAddSecondary = async () => {
@@ -73,6 +119,21 @@ const AddAccounts = () => {
     if (!pendingDisconnectId) return;
     await dispatch(disconnectSpotifyAccount(pendingDisconnectId));
     setPendingDisconnectId(null);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await dispatch(validateAllSpotifyAccounts());
+    setRefreshing(false);
+  };
+
+  const handleRelink = async (accountId: string) => {
+    const isPrimary = accountId === spotify.primaryId;
+    await dispatch(
+      connectSpotifyAccount(isPrimary ? "1" : "0", { forceShowDialog: true })
+    );
+    // OAuth takes over; the callback re-fires linkSpotifyAccount which
+    // overwrites spotify.accounts[id] when the same Spotify user signs in.
   };
 
   return (
@@ -110,11 +171,30 @@ const AddAccounts = () => {
           ItemSeparatorComponent={() => <View className="h-3" />}
           renderItem={({ item }) => {
             const included = contributingIds.includes(item.id);
+            const health = accountHealth[item.id] ?? "unknown";
+            const isDead = health === "needs_reauth";
+            const isChecking = health === "checking";
+
+            const subtitle = isDead
+              ? "Re-link needed"
+              : isChecking
+                ? "Checking…"
+                : included
+                  ? "Included"
+                  : "Tap to include";
+
             return (
               <Pressable
-                onPress={() => dispatch(toggleContributingAccount(item.id))}
+                onPress={() =>
+                  !isDead && dispatch(toggleContributingAccount(item.id))
+                }
+                disabled={isDead}
                 className={`bg-bg-card rounded-xl p-4 mx-5 ${
-                  included ? "border-2 border-success" : "border-2 border-transparent"
+                  isDead
+                    ? "border-2 border-error/50 opacity-70"
+                    : included
+                      ? "border-2 border-success"
+                      : "border-2 border-transparent"
                 }`}
                 style={{
                   shadowColor: "#000000",
@@ -138,16 +218,31 @@ const AddAccounts = () => {
                         </View>
                       ) : null}
                     </View>
-                    <Text className="text-text-muted text-sm">
-                      {included ? "Included" : "Tap to include"}
+                    <Text
+                      className={`text-sm ${isDead ? "text-error" : "text-text-muted"}`}
+                    >
+                      {subtitle}
                     </Text>
                   </View>
 
-                  <Ionicons
-                    name={included ? "checkmark-circle" : "ellipse-outline"}
-                    size={24}
-                    color={included ? "#72E0A8" : "#8A8A8A"}
-                  />
+                  {isDead ? (
+                    <Pressable
+                      onPress={() => handleRelink(item.id)}
+                      className="bg-gold/20 px-3 py-1.5 rounded-md border border-gold/40"
+                    >
+                      <Text className="text-gold font-bold text-xs">
+                        Re-link
+                      </Text>
+                    </Pressable>
+                  ) : isChecking ? (
+                    <ActivityIndicator size="small" color="#8A8A8A" />
+                  ) : (
+                    <Ionicons
+                      name={included ? "checkmark-circle" : "ellipse-outline"}
+                      size={24}
+                      color={included ? "#72E0A8" : "#8A8A8A"}
+                    />
+                  )}
 
                   {!item.isPrimary ? (
                     <Pressable
@@ -162,6 +257,14 @@ const AddAccounts = () => {
             );
           }}
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 120 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#FFD580"
+              colors={["#FFD580"]}
+            />
+          }
         />
       ) : (
         <View className="flex-1 justify-center items-center px-8">

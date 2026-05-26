@@ -99,7 +99,15 @@ export const getUserAccountTokens = async (
 
 // Kicks off Spotify OAuth (PKCE). The callback at app/auth/callback.tsx
 // reads spotify_primary from AsyncStorage and dispatches linkSpotifyAccount.
-export const connectSpotifyAccount = (primary: "0" | "1") => {
+//
+// forceShowDialog: when true, appends show_dialog=true to the Spotify auth URL
+// so Spotify always shows its account picker (instead of silently reusing the
+// currently-signed-in browser session). Useful for re-linking a specific
+// account or when a different friend is taking over the same phone.
+export const connectSpotifyAccount = (
+  primary: "0" | "1",
+  opts: { forceShowDialog?: boolean } = {}
+) => {
   return async (dispatch: AppDispatch): Promise<ThunkResult> => {
     dispatch(setPlaylistLoading(true));
     try {
@@ -121,7 +129,7 @@ export const connectSpotifyAccount = (primary: "0" | "1") => {
         ["spotify_scope", scope],
       ]);
 
-      const params = {
+      const params: Record<string, string> = {
         response_type: "code",
         client_id: process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID!,
         scope,
@@ -130,6 +138,7 @@ export const connectSpotifyAccount = (primary: "0" | "1") => {
         redirect_uri: redirectUri,
         state,
       };
+      if (opts.forceShowDialog) params.show_dialog = "true";
 
       const authUrl = `https://accounts.spotify.com/authorize?${new URLSearchParams(
         params
