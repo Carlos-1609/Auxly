@@ -7,6 +7,7 @@ const PlaylistLayout = () => {
       <Stack.Screen name="AccountChooser" />
       <Stack.Screen name="AddAccounts" />
       <Stack.Screen name="CreatePlaylist" />
+      <Stack.Screen name="PlaylistCreated" />
     </Stack>
   );
 };

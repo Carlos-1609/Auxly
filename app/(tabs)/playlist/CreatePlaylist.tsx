@@ -1,3 +1,6 @@
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setDraftName } from "@/store/playlists/playlistSlice";
+import { createPlaylistFromDraft } from "@/store/playlists/playlistThunk";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -9,36 +12,29 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 const CreatePlaylist = () => {
   const router = useRouter();
-
-  const [playlistName, setPlaylistName] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
+  const dispatch = useAppDispatch();
+  const playlistName = useAppSelector((s) => s.playlist.draft.name);
+  const isCreating = useAppSelector((s) => s.playlist.isLoading);
   const [isFocused, setIsFocused] = useState(false);
 
   const canCreate = playlistName.trim().length > 0 && !isCreating;
 
   const handleCreatePlaylist = async () => {
     if (!canCreate) return;
-
-    try {
-      setIsCreating(true);
-
-      console.log("Simulating playlist creation…");
-
-      // Simulated API delay (2 seconds)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("Playlist created:", playlistName.trim());
-
-      // Optional: navigate after success
-      // router.replace("/playlist/success");
-    } catch (err) {
-      console.log("Create playlist error:", err);
-    } finally {
-      setIsCreating(false);
+    const result = await dispatch(createPlaylistFromDraft());
+    if (!result.ok) {
+      Toast.show({
+        type: "error",
+        text1: "Could not create playlist",
+        text2: result.errorMessage,
+      });
+      return;
     }
+    router.replace("/playlist/PlaylistCreated");
   };
 
   return (
@@ -85,7 +81,7 @@ const CreatePlaylist = () => {
             autoCapitalize="words"
             returnKeyType="done"
             value={playlistName}
-            onChangeText={setPlaylistName}
+            onChangeText={(text) => dispatch(setDraftName(text))}
             editable={!isCreating}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}

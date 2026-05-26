@@ -1,8 +1,6 @@
-import {
-  connectSpotifyAccount,
-  disconnectSpotifyAccount,
-} from "@/store/auth/authThunk";
+import { connectSpotifyAccount } from "@/store/auth/authThunk";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { disconnectSpotifyAccount } from "@/store/playlists/playlistThunk";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -23,29 +21,25 @@ const ConnectedAccounts = () => {
   //     getUserAccountTokens();
   //   }, []);
 
+  const spotifyPrimaryId = userAccounts.spotify.primaryId;
+  const spotifyPrimary = spotifyPrimaryId
+    ? userAccounts.spotify.accounts[spotifyPrimaryId]
+    : null;
+
   const handleSpotifyConnection = async () => {
-    if (userAccounts.spotifyTokens?.spotifyUserID) {
+    if (spotifyPrimaryId) {
       setProvider("SPOTIFY");
       setShowDialog(true);
     } else {
-      const ok = await dispatch(connectSpotifyAccount("1"));
-      if (ok) {
-        console.log("TODO OK");
-      }
+      await dispatch(connectSpotifyAccount("1"));
     }
   };
 
   const handleAccountDisconnect = async () => {
-    if (provider === "SPOTIFY") {
-      dispatch(disconnectSpotifyAccount());
+    if (provider === "SPOTIFY" && spotifyPrimaryId) {
+      await dispatch(disconnectSpotifyAccount(spotifyPrimaryId));
       setShowDialog(false);
       setProvider("");
-    }
-    if (provider === "APPLE") {
-    }
-    if (provider === "YOUTUBE") {
-    }
-    if (provider === "AMAZON") {
     }
   };
   return (
@@ -75,20 +69,16 @@ const ConnectedAccounts = () => {
           <View className="flex-col items-center justify-center mt-1">
             <Text className="text-text-primary">Spotify</Text>
             <Text className="text-text-muted text-sm">
-              {userAccounts.spotifyTokens?.spotifyUserID
-                ? "Connected"
+              {spotifyPrimary
+                ? `Connected · ${spotifyPrimary.displayName}`
                 : "Not Connected"}
             </Text>
           </View>
 
           <Ionicons
-            name={
-              userAccounts.spotifyTokens?.spotifyUserID
-                ? "checkmark-circle"
-                : "checkmark-circle-outline"
-            }
+            name={spotifyPrimary ? "checkmark-circle" : "checkmark-circle-outline"}
             size={24}
-            color={userAccounts.spotifyTokens?.spotifyUserID ? "lime" : "grey"}
+            color={spotifyPrimary ? "lime" : "grey"}
           />
         </View>
       </TouchableOpacity>

@@ -6,27 +6,34 @@ import { UserAccounts } from "@/types/auth";
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect } from "react";
 
-export const useCheckAuth = () => {
-  const { status, isLoggedIn } = useAppSelector((state) => state.auth);
+// Mount ONCE at the root layout. Returns an unsubscribe so the listener
+// doesn't accumulate on remounts.
+export const useAuthListener = () => {
   const dispatch = useAppDispatch();
   useEffect(() => {
-    onAuthStateChanged(FirebaseAuth, async (user) => {
-      if (!user) return dispatch(clearUser());
-
-      const { uid, email, displayName } = user;
+    const unsubscribe = onAuthStateChanged(FirebaseAuth, async (user) => {
+      if (!user) {
+        dispatch(clearUser());
+        return;
+      }
       const userAccounts: UserAccounts = await getUserAccountTokens(user.uid);
       dispatch(
         setUser({
-          uid: uid,
-          email: email ?? "",
-          displayName: displayName ?? "",
-          userAccounts: userAccounts,
+          uid: user.uid,
+          email: user.email ?? "",
+          displayName: user.displayName ?? "",
+          userAccounts,
         })
       );
     });
-  }, []);
-  return {
-    status,
-    isLoggedIn,
-  };
+    return unsubscribe;
+  }, [dispatch]);
+};
+
+// Read-only selector for any screen/layout that needs to gate on auth state.
+export const useCheckAuth = () => {
+  return useAppSelector((state) => ({
+    status: state.auth.status,
+    isLoggedIn: state.auth.isLoggedIn,
+  }));
 };

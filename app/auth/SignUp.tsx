@@ -10,6 +10,7 @@ import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Toast } from "react-native-toast-message/lib/src/Toast";
 import z from "zod/v3";
 import FormInput from "../../components/ui/FormInput";
 
@@ -58,9 +59,13 @@ const SignUp = () => {
   const isLoading = useAppSelector((state) => state.auth.isLoading);
 
   const onSubmit = methods.handleSubmit(async (data) => {
-    const ok = await dispatch(startUserSignUp(data));
-    if (!ok) {
-      console.log("An error occured with creating the user");
+    const result = await dispatch(startUserSignUp(data));
+    if (!result.ok) {
+      Toast.show({
+        type: "error",
+        text1: "Could not create account",
+        text2: result.errorMessage,
+      });
       return;
     }
     router.replace("/playlist");

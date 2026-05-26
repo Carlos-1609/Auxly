@@ -1,4 +1,5 @@
-import { useAppSelector } from "@/store/hooks";
+import { setPrimaryProvider } from "@/store/playlists/playlistSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -22,6 +23,7 @@ const AccountChooser = () => {
     },
   });
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { userAccounts } = useAppSelector((state) => state.auth);
   const [connected, setConnected] = useState(false);
   const [nextEnable, setNextEnable] = useState<boolean>(true);
@@ -63,7 +65,7 @@ const AccountChooser = () => {
         </Text>
         <TouchableOpacity
           onPress={() => {
-            if (!userAccounts.spotifyTokens?.spotifyUserID) {
+            if (!userAccounts.spotify.primaryId) {
               Toast.show({
                 type: "error",
                 text1: "Spotify not connected",
@@ -72,34 +74,16 @@ const AccountChooser = () => {
               console.log("Spotify Not Connected");
               return;
             } else {
-              let stateNext: boolean;
-              if (providers.spotify.active) {
-                // disable the next button
-                stateNext = true;
-              } else {
-                // enable the next button
-                stateNext = false;
-              }
+              const becomingActive = !providers.spotify.active;
               setProviders((prev) => ({
                 ...prev,
-                apple: {
-                  ...prev.apple,
-                  active: false,
-                },
-                spotify: {
-                  ...prev.spotify,
-                  active: !prev.spotify.active,
-                },
-                youtube: {
-                  ...prev.youtube,
-                  active: false,
-                },
-                amazon: {
-                  ...prev.amazon,
-                  active: false,
-                },
+                apple: { ...prev.apple, active: false },
+                spotify: { ...prev.spotify, active: becomingActive },
+                youtube: { ...prev.youtube, active: false },
+                amazon: { ...prev.amazon, active: false },
               }));
-              onSelectedHandler(stateNext);
+              dispatch(setPrimaryProvider(becomingActive ? "spotify" : null));
+              onSelectedHandler(!becomingActive);
             }
           }}
           className={`bg-bg-card m-5 p-3 rounded-lg ${providers.spotify.active ? "border-2 border-lime-300" : ""}`}
@@ -109,7 +93,7 @@ const AccountChooser = () => {
             <View className="flex-col items-center justify-center mt-1">
               <Text className="text-text-primary">Spotify</Text>
               <Text className="text-text-muted text-sm">
-                {userAccounts.spotifyTokens?.spotifyUserID
+                {userAccounts.spotify.primaryId
                   ? "Connected"
                   : "Not Connected"}
               </Text>
@@ -117,13 +101,13 @@ const AccountChooser = () => {
 
             <Ionicons
               name={
-                userAccounts.spotifyTokens?.spotifyUserID
+                userAccounts.spotify.primaryId
                   ? "checkmark-circle"
                   : "checkmark-circle-outline"
               }
               size={24}
               color={
-                userAccounts.spotifyTokens?.spotifyUserID ? "lime" : "grey"
+                userAccounts.spotify.primaryId ? "lime" : "grey"
               }
             />
           </View>
@@ -132,7 +116,7 @@ const AccountChooser = () => {
         <TouchableOpacity
           className={`bg-bg-card m-5 p-3 rounded-lg ${providers.apple.active ? "border-2 border-lime-300" : ""}`}
           onPress={() => {
-            if (!userAccounts.appleTokens?.appleAccessToken) {
+            if (!userAccounts.apple.primaryId) {
               Toast.show({
                 type: "error",
                 text1: "Apple Music not connected",
@@ -187,7 +171,7 @@ const AccountChooser = () => {
         <TouchableOpacity
           className={`bg-bg-card m-5 p-3 rounded-lg ${providers.youtube.active ? "border-2 border-lime-300" : ""}`}
           onPress={() => {
-            if (!userAccounts.youtubeTokens?.youtubeAccessToken) {
+            if (!userAccounts.youtube.primaryId) {
               Toast.show({
                 type: "error",
                 text1: "Youtube Music not connected",
@@ -242,7 +226,7 @@ const AccountChooser = () => {
         <TouchableOpacity
           className={`bg-bg-card m-5 p-3 rounded-lg ${providers.amazon.active ? "border-2 border-lime-300" : ""}`}
           onPress={() => {
-            if (!userAccounts.amazonTokens?.amazonAccessToken) {
+            if (!userAccounts.amazon.primaryId) {
               Toast.show({
                 type: "error",
                 text1: "Amazon Music not connected",
