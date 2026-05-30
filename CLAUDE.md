@@ -6,71 +6,108 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm start          # expo start (Metro bundler, choose iOS/Android/web from prompt)
-npm run ios        # expo run:ios — builds & runs the native iOS app (required for Firebase Auth native modules)
+npm run ios        # expo run:ios — native dev client build (required for the auxly:// OAuth scheme)
 npm run android    # expo run:android
 npm run web        # expo start --web
 npm run lint       # expo lint (eslint-config-expo)
 npm run reset-project  # destructive: moves current app/ into app-example/ and scaffolds a blank app/
 ```
 
-There is no test runner configured. Do not invent one.
+No test runner is configured. Do not invent one.
 
-This is a managed Expo project with native code generated under `ios/` (Android dir not committed). After changing any native config (`app.json`, plugins, `@react-native-firebase/*`), `npm run ios` / `expo prebuild` must be re-run — Expo Go cannot host the Firebase native modules.
+Managed Expo project with `ios/` checked in (Android dir not committed). After native config changes (`app.json`, plugins), re-run `npm run ios`. Spotify OAuth's `auxly://auth/callback` redirect only works in the dev client; in Expo Go the redirect URI changes to `exp://...` and Spotify rejects it.
 
 `.env` holds `EXPO_PUBLIC_FIREBASE_*` and `EXPO_PUBLIC_SPOTIFY_CLIENT_ID`. Only `EXPO_PUBLIC_`-prefixed vars are exposed to the client.
 
 ## Architecture
 
-Expo Router (v6) + Redux Toolkit + Firebase (Auth + Firestore) + Spotify OAuth (PKCE). NativeWind for styling.
+Expo Router (v6) + Redux Toolkit + Firebase (Auth + Firestore) + Spotify OAuth (PKCE). NativeWind for styling. Product is a multi-account playlist mixer: pull top tracks from N linked Spotify accounts, dedupe, create a single playlist on the primary account.
 
 ### Routing (`app/`, file-based)
 
-- `app/_layout.tsx` — root: wraps `<Slot />` in Redux `<Provider>` and mounts `<Toast>`.
-- `app/index.tsx` — entry gate. Uses `useCheckAuth()`; redirects to `/playlist` if logged in, `/auth` otherwise. Shows `LoadingOverlay` while `status === "checking"`.
-- `app/auth/` — sign-in / sign-up / password reset / `VerifyCode`.
-- `app/auth/callback.tsx` — Spotify OAuth redirect target (`auxly://auth/callback`). Reads `code`/`state` from query params, validates against AsyncStorage-stashed PKCE verifier + state, exchanges for tokens, dispatches `storeSpotifyTokens`. Bails out quietly if `spotify_auth_in_progress` flag isn't set (dev deep-link replays).
-- `app/(tabs)/` — authenticated area: `playlist/` (index, `CreatePlaylist`, `AddAccounts`, `AccountChooser`), `profile/` (index, `ConnectedAccounts`), and `PlaylistHistory.tsx`. `CustomTabBar` in `components/`.
+- `app/_layout.tsx` — root: Redux `<Provider>`, mounts `<AuthGate>` which calls `useAuthListener()` (must be the *only* call site — see Auth below), then `<Slot />` and `<Toast>`.
+- `app/index.tsx` — entry gate. Reads auth state via `useCheckAuth()` (pure selector now), redirects accordingly.
+- `app/auth/` — sign-in / sign-up / password reset / OAuth callback.
+- `app/auth/callback.tsx` — Spotify OAuth redirect target (`auxly://auth/callback`). Validates state, exchanges the code, dispatches `linkSpotifyAccount({ ..., isPrimary })`. Bails out quietly if `spotify_auth_in_progress` isn't set (dev deep-link replays).
+- `app/(tabs)/playlist/` — `index` (FAB → AccountChooser), `AccountChooser` (pick primary provider), `AddAccounts` (pick contributing accounts, link secondaries, health-check), `CreatePlaylist` (name + dispatch), `PlaylistCreated` (success screen with skipped-accounts + Re-link).
+- `app/(tabs)/profile/ConnectedAccounts.tsx` — link/unlink the **primary** Spotify account.
 
-Path alias: `@/*` → repo root (e.g., `@/store/...`, `@/components/...`, `@/firebase/...`).
-
-`typedRoutes: true` and `reactCompiler: true` are enabled in `app.json` — typed `href` strings and the React Compiler are active.
+Path alias: `@/*` → repo root. `typedRoutes: true` and `reactCompiler: true` are on in `app.json`.
 
 ### State (`store/`)
 
-Single Redux store with two slices:
-- `auth/authSlice.ts` + `authThunk.ts` — Firebase user + `userAccounts` (per-provider tokens) loaded from the Firestore `userAccounts/{uid}` doc. `status` is `"checking" | "authenticated" | "unauthenticated"`.
-- `playlists/playlistSlice.ts` + `playlistThunk.ts` — Spotify token refresh, `storeSpotifyTokens` (writes to Firestore + fetches Spotify `/me` for `spotifyUserID`).
+Two slices, both with their own `isLoading` flag (don't share):
+- `auth/authSlice.ts` — Firebase user + `userAccounts`. `auth.isLoading` is *only* for sign-in/sign-up.
+- `playlists/playlistSlice.ts` — `draft` (in-progress playlist), `lastCreated`, `accountHealth` (transient per-account probe results), `isLoading` for **all Spotify operations** (connect, disconnect, refresh, create, validate).
 
-Use typed hooks from `store/hooks.ts`: `useAppDispatch`, `useAppSelector`. Do not import `useDispatch`/`useSelector` directly.
+Use typed hooks from `store/hooks.ts`: `useAppDispatch`, `useAppSelector`. Prefer scalar selectors — returning composite objects (`useAppSelector(s => ({a, b}))`) re-renders on every dispatch.
 
-`useCheckAuth()` in `hooks/useCheckAuth.ts` registers an `onAuthStateChanged` listener that hydrates the auth slice (and fetches `userAccounts` from Firestore) on every mount. Currently registered with `[]` deps — no unsubscribe on unmount.
+### Auth listener pattern (important)
+
+`hooks/useCheckAuth.ts` exports two functions:
+- `useAuthListener()` — registers Firebase `onAuthStateChanged`, returns cleanup. **Must be called from exactly one place** (`app/_layout.tsx`'s `<AuthGate>`). Mounting it in multiple components stacks listeners that never unsubscribe.
+- `useCheckAuth()` — pure Redux selector for `{ status, isLoggedIn }`. Safe to call anywhere.
+
+### Thunk contract
+
+Every thunk returns `Promise<ThunkResult>` where `ThunkResult = { ok: true } | { ok: false; errorMessage: string }`. UI callers check `result.ok` (the `errorMessage` is type-narrowed after). Loading state is managed in `try/finally` so it cleans up on every path including errors.
+
+### UserAccounts data model (Firestore: `userAccounts/{uid}`)
+
+Multi-account by design. Keyed by Spotify's permanent user ID, not arrays:
+
+```ts
+{
+  spotify: {
+    primaryId: string | null,   // pointer to which account is the "host" for playlist writes
+    accounts: {
+      [spotifyUserID]: { accessToken, refreshToken, expiresAt, displayName, scopes }
+    }
+  },
+  apple:   { primaryId: null, accounts: {} },   // stub for Phase 2
+  youtube: { primaryId: null, accounts: {} },   // stub — no public API exists, may never ship
+  amazon:  { primaryId: null, accounts: {} }    // stub — same
+}
+```
+
+**Always read via `normalizeUserAccounts(raw)` from `types/auth.ts`** — Firestore docs may be partial; the normalizer guarantees the full shape with defaults. Don't `?.` chain at call sites.
+
+Per-account writes use dotted paths to avoid array rewrites: `updateDoc(doc, { "spotify.accounts.${id}.accessToken": newToken })`. `linkSpotifyAccount` uses `setDoc(..., { merge: true })` so it handles both first-link and re-link.
+
+### Spotify operations (`store/playlists/playlistThunk.ts`)
+
+- `connectSpotifyAccount(primary, { forceShowDialog? })` in `authThunk.ts` — kicks off PKCE OAuth. `forceShowDialog: true` appends `show_dialog=true` to the Spotify URL so re-links can pick a specific account instead of silently using whoever's signed into the browser.
+- `linkSpotifyAccount({ accessToken, refreshToken, expiresAt, scopes, isPrimary })` — called from the OAuth callback after code exchange. Fetches `/me` for the canonical Spotify ID + display name, writes to `spotify.accounts[id]`, optionally sets `primaryId`. Rejects re-linking the primary as a secondary.
+- `disconnectSpotifyAccount(spotifyUserId)` — takes a specific account ID; clears `primaryId` if disconnecting the primary.
+- `ensureFreshSpotifyToken(dispatch, getState, accountId)` — private. Returns a non-expired access token, refreshing via `performSpotifyRefresh` (also private, no loading-state side effects so it's safe to compose). 60-second buffer before expiry.
+- `refreshSpotifyToken()` — public wrapper around `performSpotifyRefresh` for the primary only, manages loading state.
+- `validateAccountHealth(accountId)` / `validateAllSpotifyAccounts()` — **forced** refresh per account (not just `/me` ping). Spotify access tokens survive grant revocation until natural expiry, so only the refresh endpoint actually checks the grant. Sets per-account `health` in Redux: `"unknown" | "checking" | "healthy" | "needs_reauth"`. Only `invalid_grant` marks an account permanently dead; other failures are treated as transient.
+- `createPlaylistFromDraft()` — fan-out over `draft.contributingAccountIds` via `Promise.all`, dedupes URIs via `Set`, creates the playlist on the primary, writes `lastCreated` with `skippedAccounts` for any failures, resets the draft. Skip-and-warn: one failed account doesn't block the others.
+
+### Pure API helpers (`firebase/spotifyApi.ts`)
+
+`getTopTracks`, `createSpotifyPlaylist`, `addTracksToSpotifyPlaylist`, `refreshSpotifyAccessToken`, `getCurrentSpotifyUser`. Throw on non-2xx (single `assertOk` helper). Caller-owned auth — they take a token, never the store.
+
+### AddAccounts staleness checks
+
+Health is re-probed on: screen focus (`useFocusEffect`), app foreground (`AppState` listener), pull-to-refresh (`RefreshControl`). Dead accounts can't be selected as contributors and auto-drop from the existing selection. The Re-link button calls `connectSpotifyAccount(isPrimary, { forceShowDialog: true })`.
 
 ### Firebase (`firebase/`)
 
-- `firebaseConfig.ts` — initializes the Web Firebase SDK (`firebase/app`, `firebase/auth`, `firebase/firestore`) with AsyncStorage persistence via the untyped `getReactNativePersistence`. Exports `FirebaseAuth` and `FirebaseDB`. There is also a `@react-native-firebase/*` dependency installed; do not mix the two SDKs in new code without aligning with what's already used in the file you're editing.
-- `providers.ts` — thin wrappers around Firebase email/password auth (`userSignUpFirebase`, `userSignInFirebase`, `userPasswordResetFirebase`, `userLogoutFirebase`).
+- `firebaseConfig.ts` — Web Firebase SDK with AsyncStorage persistence via the untyped `getReactNativePersistence`. Exports `FirebaseAuth`, `FirebaseDB`. `@react-native-firebase/*` is *also* installed but unused — pick one before adopting it broadly.
+- `providers.ts` — Firebase email/password wrappers. They **throw** on error; `mapAuthError(error)` in `firebase/authErrors.ts` translates Firebase error codes to user-facing messages.
 
-Firestore schema: collection `userAccounts`, doc id = Firebase `uid`, shape `UserAccounts` from `types/auth.ts` (`spotifyTokens`, `appleTokens`, `amazonTokens`, `youtubeTokens`). Spotify token writes use dotted-path `updateDoc` (e.g. `"spotifyTokens.spotifyAccessToken"`) to merge into nested fields.
+### Styling / Forms
 
-### Spotify OAuth (PKCE) flow
+NativeWind v4 + Tailwind, semantic tokens (`bg-bg-base`, `text-text-primary`, `bg-coral`, `text-error`) — see `tailwind.config.js`. `global.css` imported once in `app/_layout.tsx`.
 
-1. `connectSpotifyAccount(primary)` (in `store/auth/authThunk.ts`) generates a verifier (`expo-crypto` random bytes → SHA256 → base64url challenge), stashes verifier/state/`spotify_primary`/`spotify_auth_in_progress` in AsyncStorage, then `Linking.openURL` to Spotify's `/authorize`. Redirect URI is `Linking.createURL("auth/callback")` → resolves to `auxly://auth/callback` (scheme set in `app.json`).
-2. Spotify redirects back to `app/auth/callback.tsx`, which validates state, exchanges the code, dispatches `storeSpotifyTokens` for primary accounts.
-3. `refreshSpotifyToken` in `playlistThunk.ts` handles refresh using the stored refresh token.
-
-Scopes differ by `primary === "1"` (full playlist-modify scopes) vs secondary (`user-top-read` only).
-
-### Styling
-
-NativeWind v4 + Tailwind. `tailwind.config.js` defines the design tokens — use semantic classnames like `bg-bg-base`, `text-text-primary`, `text-text-secondary`, `bg-coral`, `text-error` rather than raw hex. `global.css` is imported once in `app/_layout.tsx`.
-
-### Forms
-
-`react-hook-form` + `zod` via `@hookform/resolvers`. The shared input component is `components/ui/FormInput.tsx`.
+`react-hook-form` + `zod` via `@hookform/resolvers`. Shared input: `components/ui/FormInput.tsx`.
 
 ## Conventions worth knowing
 
-- `startUserSignin` in `store/auth/authThunk.ts` currently **hardcodes** the test credentials `carlosord1609@gmail.com` / `Honduras_16` and ignores its arguments — this is a dev-time shortcut, not intended behavior. Restore the real `email, password` call before shipping anything that touches sign-in.
-- Thunk return shape is `{ ok: boolean, errorMessage?: string }` (sometimes just `true`/`false`). Match that pattern in new thunks.
-- The slice setter `setIsLoading` is shared across auth and playlist thunks for a single global loading flag — `LoadingOverlay` in `components/ui/` consumes it.
-- `expo-router` `typedRoutes` is on, so `href` strings must match real routes (e.g., `/playlist`, `/auth`).
+- **Multi-account is the product, not a future feature.** Cross-provider merging (Spotify ↔ Apple Music via ISRC matching) is the long-term goal. YouTube Music and Amazon Music are stubs because neither has a public API — keep them in the type but don't promise them in UI.
+- Thunk return shape: always `Promise<ThunkResult>`. Match the `try { ... return {ok:true} } catch { return {ok:false, errorMessage} } finally { setLoading(false) }` pattern.
+- Composable thunks should have a "pure" inner helper that doesn't dispatch loading state (`performSpotifyRefresh`) so outer thunks can call them without nested loading toggles racing.
+- AsyncStorage keys for OAuth flow are listed in `app/auth/callback.tsx` (`SPOTIFY_FLAG_KEYS`). Use the `clearSpotifyAuthFlags()` helper instead of inlining `multiRemove`.
+- `expo-router` `typedRoutes` is on — `href` strings must match real routes.
+- `expo-auth-session` is installed but unused; PKCE is hand-rolled in `connectSpotifyAccount`. Either adopt the library or drop the dep.
