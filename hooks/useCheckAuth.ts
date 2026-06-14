@@ -30,7 +30,7 @@ export const useAuthListener = () => {
   }, [dispatch]);
 };
 
-// Read-only selector for any screen/layout that needs to gate on auth state.
+// Read-only selector for any screen/layout that needs to gate on auth state
 // Uses scalar selectors so each subscription compares by reference correctly
 // a composite object literal here would re-render on every store change
 export const useCheckAuth = () => {
