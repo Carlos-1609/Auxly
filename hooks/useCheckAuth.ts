@@ -7,7 +7,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { useEffect } from "react";
 
 // Mount ONCE at the root layout. Returns an unsubscribe so the listener
-// doesn't accumulate on remounts
+// Doesn't accumulate on remounts
 export const useAuthListener = () => {
   const dispatch = useAppDispatch();
   useEffect(() => {
