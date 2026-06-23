@@ -41,11 +41,11 @@ const performSpotifyRefresh = async (
   dispatch: AppDispatch,
   uid: string,
   spotifyUserId: string,
-  refreshToken: string
+  refreshToken: string,
 ): Promise<string> => {
   const tokens = await refreshSpotifyAccessToken(
     SPOTIFY_CLIENT_ID,
-    refreshToken
+    refreshToken,
   );
   const expiresAt = Date.now() + tokens.expires_in * 1000;
   const base = `spotify.accounts.${spotifyUserId}`;
@@ -67,20 +67,28 @@ const performSpotifyRefresh = async (
 export const refreshSpotifyToken = () => {
   return async (
     dispatch: AppDispatch,
-    getState: () => RootState
+    getState: () => RootState,
   ): Promise<ThunkResult> => {
     dispatch(setPlaylistLoading(true));
     try {
       const { uid, userAccounts } = getState().auth;
       const primaryId = userAccounts.spotify.primaryId;
       if (!primaryId) {
-        return { ok: false, errorMessage: "No primary Spotify account linked." };
+        return {
+          ok: false,
+          errorMessage: "No primary Spotify account linked.",
+        };
       }
       const account = userAccounts.spotify.accounts[primaryId];
       if (!account?.refreshToken) {
         return { ok: false, errorMessage: "Refresh token not found." };
       }
-      await performSpotifyRefresh(dispatch, uid, primaryId, account.refreshToken);
+      await performSpotifyRefresh(
+        dispatch,
+        uid,
+        primaryId,
+        account.refreshToken,
+      );
       return { ok: true };
     } catch (error: any) {
       console.error("[refreshSpotifyToken]", error);
@@ -93,7 +101,7 @@ export const refreshSpotifyToken = () => {
 
 // Called from the OAuth callback after a successful code exchange.
 // Fetches /me to get the canonical Spotify user ID, then stores the account
-// under spotify.accounts[id] and optionally sets it as primary.
+// under spotify.accounts[id] and optionally sets it as primary
 export const linkSpotifyAccount = (params: {
   accessToken: string;
   refreshToken: string;
@@ -103,7 +111,7 @@ export const linkSpotifyAccount = (params: {
 }) => {
   return async (
     dispatch: AppDispatch,
-    getState: () => RootState
+    getState: () => RootState,
   ): Promise<ThunkResult> => {
     dispatch(setPlaylistLoading(true));
     try {
@@ -135,7 +143,7 @@ export const linkSpotifyAccount = (params: {
             accounts: { [me.id]: account },
           },
         },
-        { merge: true }
+        { merge: true },
       );
 
       await syncUserAccounts(dispatch, uid);
@@ -157,7 +165,7 @@ export const linkSpotifyAccount = (params: {
 export const disconnectSpotifyAccount = (spotifyUserId: string) => {
   return async (
     dispatch: AppDispatch,
-    getState: () => RootState
+    getState: () => RootState,
   ): Promise<ThunkResult> => {
     dispatch(setPlaylistLoading(true));
     try {
@@ -207,7 +215,7 @@ const isInvalidGrantError = (error: unknown): boolean => {
 export const validateAccountHealth = (accountId: string) => {
   return async (
     dispatch: AppDispatch,
-    getState: () => RootState
+    getState: () => RootState,
   ): Promise<void> => {
     dispatch(setAccountHealth({ accountId, status: "checking" }));
     try {
@@ -219,7 +227,12 @@ export const validateAccountHealth = (accountId: string) => {
       }
       // Forced refresh — bypasses the not-expired-yet shortcut. If the
       // refresh token has been revoked, Spotify returns invalid_grant here.
-      await performSpotifyRefresh(dispatch, uid, accountId, account.refreshToken);
+      await performSpotifyRefresh(
+        dispatch,
+        uid,
+        accountId,
+        account.refreshToken,
+      );
       dispatch(setAccountHealth({ accountId, status: "healthy" }));
     } catch (error) {
       if (isInvalidGrantError(error)) {
@@ -239,7 +252,7 @@ export const validateAccountHealth = (accountId: string) => {
 export const validateAllSpotifyAccounts = () => {
   return async (
     dispatch: AppDispatch,
-    getState: () => RootState
+    getState: () => RootState,
   ): Promise<void> => {
     const ids = Object.keys(getState().auth.userAccounts.spotify.accounts);
     if (ids.length === 0) return;
@@ -255,7 +268,7 @@ export const validateAllSpotifyAccounts = () => {
 const ensureFreshSpotifyToken = async (
   dispatch: AppDispatch,
   getState: () => RootState,
-  spotifyUserId: string
+  spotifyUserId: string,
 ): Promise<string> => {
   const { uid, userAccounts } = getState().auth;
   const account = userAccounts.spotify.accounts[spotifyUserId];
@@ -265,7 +278,12 @@ const ensureFreshSpotifyToken = async (
   if (!isTokenExpired(account.expiresAt)) {
     return account.accessToken;
   }
-  return performSpotifyRefresh(dispatch, uid, spotifyUserId, account.refreshToken);
+  return performSpotifyRefresh(
+    dispatch,
+    uid,
+    spotifyUserId,
+    account.refreshToken,
+  );
 };
 
 type FetchResult =
@@ -275,7 +293,7 @@ type FetchResult =
 const fetchTopTracksForAccount = async (
   dispatch: AppDispatch,
   getState: () => RootState,
-  accountId: string
+  accountId: string,
 ): Promise<FetchResult> => {
   const account = getState().auth.userAccounts.spotify.accounts[accountId];
   const displayName = account?.displayName ?? accountId;
@@ -299,7 +317,7 @@ const fetchTopTracksForAccount = async (
 export const createPlaylistFromDraft = () => {
   return async (
     dispatch: AppDispatch,
-    getState: () => RootState
+    getState: () => RootState,
   ): Promise<ThunkResult> => {
     dispatch(setPlaylistLoading(true));
     try {
@@ -334,8 +352,8 @@ export const createPlaylistFromDraft = () => {
       // Fan out fetches concurrently.
       const results = await Promise.all(
         contributorIds.map((id) =>
-          fetchTopTracksForAccount(dispatch, getState, id)
-        )
+          fetchTopTracksForAccount(dispatch, getState, id),
+        ),
       );
 
       const allUris: string[] = [];
@@ -366,7 +384,7 @@ export const createPlaylistFromDraft = () => {
       const primaryToken = await ensureFreshSpotifyToken(
         dispatch,
         getState,
-        primaryId
+        primaryId,
       );
       const playlist = await createSpotifyPlaylist(primaryToken, primaryId, {
         name,
@@ -382,7 +400,7 @@ export const createPlaylistFromDraft = () => {
           provider: "spotify",
           trackCount: uniqueUris.length,
           skippedAccounts: skipped,
-        })
+        }),
       );
       dispatch(resetDraft());
       return { ok: true };
