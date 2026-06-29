@@ -5,11 +5,9 @@ export type SignupData = {
   password: string;
 };
 
-export type ThunkResult =
-  | { ok: true }
-  | { ok: false; errorMessage: string };
+export type ThunkResult = { ok: true } | { ok: false; errorMessage: string };
 
-// One linked Spotify account (primary or secondary).
+// One linked Spotify account (primary or secondary)
 export type LinkedSpotifyAccount = {
   accessToken: string;
   refreshToken: string;
