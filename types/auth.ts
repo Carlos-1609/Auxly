@@ -7,7 +7,7 @@ export type SignupData = {
 
 export type ThunkResult = { ok: true } | { ok: false; errorMessage: string };
 
-// One linked Spotify account primary or secondary
+// One link Spotify account primary or secondary
 export type LinkedSpotifyAccount = {
   accessToken: string;
   refreshToken: string;
