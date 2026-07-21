@@ -1,4 +1,4 @@
-// app/hooks.ts (or src/hooks.ts – just be consistent)
+// app/hooks.ts (or src/hooks.ts  just be consistent)
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "./store";
 
