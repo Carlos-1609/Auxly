@@ -19,6 +19,5 @@ const app =
 
 export const FirebaseDB = getFirestore(app);
 export const FirebaseAuth = initializeAuth(app, {
-  // TS types don't know about getReactNativePersistence yet, but it's there at runtime.
   persistence: (firebaseAuth as any).getReactNativePersistence(AsyncStorage),
 });
