@@ -3,7 +3,6 @@ import { getApps, initializeApp } from "firebase/app";
 import * as firebaseAuth from "firebase/auth"; // <- for the missing types
 import { initializeAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-// Initialize Firebase
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
