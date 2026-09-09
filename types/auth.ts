@@ -41,7 +41,6 @@ export const EMPTY_USER_ACCOUNTS: UserAccounts = {
   amazon: { primaryId: null, accounts: {} },
 };
 
-// Defensive read for Firestore docs that might be partial
 export const normalizeUserAccounts = (raw: unknown): UserAccounts => {
   const r = (raw ?? {}) as Record<string, any>;
   return {
