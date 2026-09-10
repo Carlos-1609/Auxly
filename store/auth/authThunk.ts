@@ -33,7 +33,7 @@ export const getChallengeFromVerifier = async (verifier: string) => {
   const base64 = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
     verifier,
-    { encoding: Crypto.CryptoEncoding.BASE64 }
+    { encoding: Crypto.CryptoEncoding.BASE64 },
   );
   return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
@@ -49,7 +49,7 @@ export const startUserSignUp = (data: SignupData) => {
           email: user.email ?? "",
           displayName: user.displayName ?? "",
           userAccounts: EMPTY_USER_ACCOUNTS,
-        })
+        }),
       );
       return { ok: true };
     } catch (error) {
@@ -73,7 +73,7 @@ export const startUserSignin = (email: string, password: string) => {
           displayName: user.displayName ?? "",
           email: user.email ?? "",
           userAccounts,
-        })
+        }),
       );
       return { ok: true };
     } catch (error) {
@@ -86,7 +86,7 @@ export const startUserSignin = (email: string, password: string) => {
 };
 
 export const getUserAccountTokens = async (
-  id: string
+  id: string,
 ): Promise<UserAccounts> => {
   try {
     const snap = await getDoc(doc(FirebaseDB, "userAccounts", id));
@@ -97,7 +97,7 @@ export const getUserAccountTokens = async (
   }
 };
 
-// Kicks off Spotify OAuth (PKCE). The callback at app/auth/callback.tsx
+// Kicks off Spotify OAuth (PKCE) The callback at app/auth/callback.tsx
 // reads spotify_primary from AsyncStorage and dispatches linkSpotifyAccount.
 //
 // forceShowDialog: when true, appends show_dialog=true to the Spotify auth URL
@@ -106,7 +106,7 @@ export const getUserAccountTokens = async (
 // account or when a different friend is taking over the same phone.
 export const connectSpotifyAccount = (
   primary: "0" | "1",
-  opts: { forceShowDialog?: boolean } = {}
+  opts: { forceShowDialog?: boolean } = {},
 ) => {
   return async (dispatch: AppDispatch): Promise<ThunkResult> => {
     dispatch(setPlaylistLoading(true));
@@ -141,7 +141,7 @@ export const connectSpotifyAccount = (
       if (opts.forceShowDialog) params.show_dialog = "true";
 
       const authUrl = `https://accounts.spotify.com/authorize?${new URLSearchParams(
-        params
+        params,
       ).toString()}`;
 
       console.log("[Spotify OAuth] redirectUri =", redirectUri);
